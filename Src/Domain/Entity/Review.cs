@@ -1,0 +1,57 @@
+using Domain.AggregateRoot;
+using Domain.Event;
+
+namespace Domain.Entity;
+
+public class Review : BaseAggregateRoot
+{
+    public User Author { get; private set; }
+    public string Content { get; private set; }
+    public double Rating { get; private set; }
+    public int Likes { get; private set; }
+    public int Dislikes { get; private set; }
+    public string ReferenceId { get; init; }
+
+    private Review(
+        User author,
+        string content,
+        double rating,
+        string refId) : base()
+    {
+        Author = author;
+        Content = content;
+        Rating = rating;
+        Likes = 0;
+        Dislikes = 0;
+        ReferenceId = refId;
+    }
+
+    public static Review Create(User author, string content, double rating, string refId)
+    {
+        var result = new Review(author, content, rating, refId);
+
+        var @event = new ReviewCreatedEvent(author.Id, result.Id, content, rating, refId);
+        result.AddDomainEvent(@event);
+        return result;
+    }
+
+    public DomainEvent? UpdateContent(string newContent)
+    {
+        if (Content == newContent)
+            return null;
+
+        var @event = new ReviewContentUpdatedEvent(Author.Id, Id, newContent);
+        AddDomainEvent(@event);
+
+        return @event;
+    }
+
+    public DomainEvent? AddLike(Guid reviewId, Guid userId)
+    {
+        var @event = new LikeAddedEvent(reviewId, userId);
+
+        AddDomainEvent(@event);
+
+        return @event;
+    }
+}
