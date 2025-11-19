@@ -146,7 +146,6 @@ Src/Api/Infrastructure.Context.ReviewContext.yml
 Src/Api/Infrastructure.Configuration.yml
 Src/Api/Infrastructure.Configuration.ReviewEntityTypeConfiguration.yml
 Src/Api/Domain.ValueObject.yml
-Src/Api/Program.cs
 Src/Api/toc.yml
 Src/docs/getting-started.md
 Src/docs/introduction.md
