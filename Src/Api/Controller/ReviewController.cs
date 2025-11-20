@@ -28,4 +28,18 @@ public class ReviewController(IReviewService reviewService) : ControllerBase
 
         return Ok(result.Value);
     }
+
+    [HttpPost("{reviewId}/like")]
+    public async Task<IActionResult> LikeReview([FromRoute] Guid reviewId)
+    {
+        // Get the domain user from the middleware
+        var domainUser = HttpContext.GetDomainUser();
+        if (domainUser == null) return Unauthorized("User not found in context");
+
+        var result = await reviewService.LikeReviewAsync(reviewId, domainUser.Id);
+
+        if (result.IsFailed) return BadRequest(result.Errors);
+
+        return Ok();
+    }
 }

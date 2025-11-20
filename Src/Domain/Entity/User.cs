@@ -10,4 +10,9 @@ public class User
         Id = id;
         Name = name;
     }
+
+    public User(Guid id)
+    {
+        Id = id;
+    }
 }

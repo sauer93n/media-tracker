@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Api.Model;
 using Application.DTO;
+using Application.Policies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 
@@ -11,17 +12,19 @@ namespace Api.Controller
     public class AuthController: ControllerBase
     {
         private readonly IOptions<KeycloakOptions> options;
-        private readonly HttpClient httpClient;
+        private readonly IHttpClientFactory httpClientFactory;
 
-        public AuthController(IOptions<KeycloakOptions> options)
+        public AuthController(IOptions<KeycloakOptions> options, IHttpClientFactory httpClientFactory)
         {
             this.options = options;
-            httpClient = new HttpClient();
+            this.httpClientFactory = httpClientFactory;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
+            var httpClient = httpClientFactory.CreateClient();
+            var policy = ResiliencePolicies.GetCombinedPolicy();
             var url = $"{options.Value.AuthServerUrl}/admin/realms/{options.Value.Realm}/users";
 
             var adminData = new Dictionary<string, string>
@@ -31,9 +34,11 @@ namespace Api.Controller
                 ["grant_type"] = "client_credentials"
             };
 
-            var adminResponse = await httpClient.PostAsync(
-                $"{options.Value.AuthServerUrl}/realms/{options.Value.Realm}/protocol/openid-connect/token",
-                new FormUrlEncodedContent(adminData)
+            var adminResponse = await policy.ExecuteAsync(async () =>
+                await httpClient.PostAsync(
+                    $"{options.Value.AuthServerUrl}/realms/{options.Value.Realm}/protocol/openid-connect/token",
+                    new FormUrlEncodedContent(adminData)
+                )
             );
 
             var adminContent = await adminResponse.Content.ReadAsStringAsync();
@@ -65,7 +70,9 @@ namespace Api.Controller
             userRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
             userRequest.Content = new StringContent(JsonSerializer.Serialize(userPayload), System.Text.Encoding.UTF8, "application/json");
 
-            var userResponse = await httpClient.SendAsync(userRequest);
+            var userResponse = await policy.ExecuteAsync(async () =>
+                await httpClient.SendAsync(userRequest)
+            );
             var userContent = await userResponse.Content.ReadAsStringAsync();
 
             if (!userResponse.IsSuccessStatusCode)
@@ -82,7 +89,9 @@ namespace Api.Controller
             var verifyRequest = new HttpRequestMessage(HttpMethod.Put, verifyEmailUrl);
             verifyRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
 
-            var verifyResponse = await httpClient.SendAsync(verifyRequest);
+            var verifyResponse = await policy.ExecuteAsync(async () =>
+                await httpClient.SendAsync(verifyRequest)
+            );
 
             if (!verifyResponse.IsSuccessStatusCode)
                 return BadRequest("Failed to send verification email");
@@ -93,6 +102,8 @@ namespace Api.Controller
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
+            var httpClient = httpClientFactory.CreateClient();
+            var policy = ResiliencePolicies.GetCombinedPolicy();
             var tokenUrl = $"{options.Value.AuthServerUrl}/realms/{options.Value.Realm}/protocol/openid-connect/token";
 
             var loginData = new Dictionary<string, string>
@@ -105,7 +116,9 @@ namespace Api.Controller
                 ["scope"] = "openid profile email"
             };
 
-            var response = await httpClient.PostAsync(tokenUrl, new FormUrlEncodedContent(loginData));
+            var response = await policy.ExecuteAsync(async () =>
+                await httpClient.PostAsync(tokenUrl, new FormUrlEncodedContent(loginData))
+            );
             var content = await response.Content.ReadAsStringAsync();
 
             if (!response.IsSuccessStatusCode)

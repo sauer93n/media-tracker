@@ -1,11 +1,11 @@
 using Api.Middleware;
 using Api.Model;
 using Application.EventPublisher;
+using Application.Extensions;
 using Application.Interface;
 using Application.Model;
 using Application.Service;
 using Infrastructure.Context;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -54,6 +54,10 @@ builder.Services.AddDbContext<ReviewContext>(options =>
     options.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IMediaService, MediaService>();
+
+// Add HttpClient factory for use in controllers
+builder.Services.AddHttpClient();
 
 builder.Services.Configure<KeycloakOptions>(builder.Configuration.GetSection("KeycloakOptions"));
 builder.Services.Configure<ApplicationOptions>(builder.Configuration.GetSection("ApplicationOptions"));
@@ -71,6 +75,7 @@ builder.Services.AddAuthentication()
         #endif
     });
 builder.Services.AddAuthorization();
+builder.Services.AddAutoMapperProfiles(typeof(IReviewService).Assembly);
 
 var app = builder.Build();
 
@@ -92,5 +97,4 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.Run();
 app.Run();
