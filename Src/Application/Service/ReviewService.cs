@@ -141,13 +141,16 @@ public class ReviewService(ReviewContext reviewContext, IEventPublisher eventPub
             if (reviewEntity == null) return Result.Fail("Review not found");
 
             // Map updated properties
-            reviewEntity.Rating = request.Rating;
-            reviewEntity.Content = request.Content;
+            var domainReview = mapper.Map<Review>(reviewEntity);
+            domainReview.UpdateContent(request.Content);
+            domainReview.UpdateRating(request.Rating);
 
             await reviewContext.SaveChangesAsync();
 
+            await PublishEventAsync(domainReview);
+
             // Map to DTO for response
-            var reviewDto = mapper.Map<ReviewDTO>(reviewEntity);
+            var reviewDto = mapper.Map<ReviewDTO>(domainReview);
 
             return Result.Ok(reviewDto);
         }

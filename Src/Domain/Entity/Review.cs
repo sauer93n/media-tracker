@@ -37,6 +37,18 @@ public class Review : BaseAggregateRoot
         return result;
     }
 
+    public DomainEvent? UpdateRating(double newRating)
+    {
+        if (Rating == newRating)
+            return null;
+
+        Rating = newRating;
+        var @event = new ReviewRatingUpdatedEvent(Author.Id, Id, newRating);
+        AddDomainEvent(@event);
+
+        return @event;
+    }
+
     public DomainEvent? UpdateContent(string newContent)
     {
         if (Content == newContent)
