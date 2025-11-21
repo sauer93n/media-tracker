@@ -4,6 +4,7 @@ using AutoMapper;
 using Domain.Entity;
 using FluentResults;
 using Infrastructure.Context;
+using Microsoft.EntityFrameworkCore;
 
 namespace Application.Service;
 
@@ -94,6 +95,39 @@ public class ReviewService(ReviewContext reviewContext, IEventPublisher eventPub
         catch (Exception ex)
         {
             return Result.Fail(ex.Message);
+        }
+    }
+
+    public async Task<PagedResult<ReviewDTO>> GetReviewsAsync(string referenceId, int pageNumber, int pageSize)
+    {
+        try
+        {
+            var query = reviewContext.Reviews
+                .Where(r => r.ReferenceId == referenceId && !r.IsDeleted);
+
+            var totalCount = await query.CountAsync();
+
+            var reviews = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var domainReviews = reviews.Select(mapper.Map<Review>).ToList();
+            var reviewDtos = domainReviews.Select(mapper.Map<ReviewDTO>).ToList();
+
+            var pagedResult = new PagedResult<ReviewDTO>
+            {
+                Data = reviewDtos,
+                TotalCount = totalCount,
+                PageNumber = pageNumber,
+                PageSize = pageSize
+            };
+
+            return pagedResult;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error retrieving reviews", ex);
         }
     }
 

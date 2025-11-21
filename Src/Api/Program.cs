@@ -8,6 +8,7 @@ using Application.Service;
 using Infrastructure.Context;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
+using CookieOptions = Api.Model.CookieOptions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -44,7 +45,22 @@ builder.Services.AddSwaggerGen(
 builder.Services.AddControllers();
 builder.Services.AddScoped<IEventPublisher, EventPublisher>();
 
-builder.Configuration.AddJsonFile("appsettings.json").AddEnvironmentVariables();
+// Add CORS configuration from appsettings
+builder.Services.Configure<CorsOptions>(builder.Configuration.GetSection("Cors"));
+var corsOptions = builder.Configuration.GetSection("Cors").Get<CorsOptions>() ?? new CorsOptions();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy
+            .WithOrigins(corsOptions.AllowedOrigins)
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials()
+            .WithExposedHeaders(corsOptions.ExposedHeaders);
+    });
+});
 builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
 var connectionString =
     builder.Configuration.GetConnectionString("MediaTracker")
@@ -61,6 +77,7 @@ builder.Services.AddHttpClient();
 
 builder.Services.Configure<KeycloakOptions>(builder.Configuration.GetSection("KeycloakOptions"));
 builder.Services.Configure<ApplicationOptions>(builder.Configuration.GetSection("ApplicationOptions"));
+builder.Services.Configure<CookieOptions>(builder.Configuration.GetSection("CookieOptions"));
 
 var keycloakOptions = builder.Configuration.GetSection("KeycloakOptions").Get<KeycloakOptions>()
     ?? throw new InvalidOperationException("KeycloakOptions not configured");
@@ -81,6 +98,7 @@ var app = builder.Build();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseCors("AllowFrontend");
 app.UseDomainUserMiddleware();
 
 app.MapControllers();
