@@ -219,13 +219,20 @@ namespace Api.Controller
 
             // Get the refresh token from cookie first, then fall back to Authorization header
             var refreshToken = Request.Cookies[cookieOpts.RefreshTokenCookieName];
-            
+
             if (string.IsNullOrEmpty(refreshToken))
             {
                 // Fall back to Authorization header for backward compatibility
-                refreshToken = Request.Headers.Authorization.ToString().Replace("Bearer ", "");
+                if (Request.Headers.TryGetValue("Authorization", out var authHeader))
+                {
+                    var headerValue = authHeader.FirstOrDefault();
+                    if (!string.IsNullOrEmpty(headerValue) && headerValue.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        refreshToken = headerValue.Substring("Bearer ".Length).Trim();
+                    }
+                }
             }
-            
+
             if (string.IsNullOrEmpty(refreshToken))
                 return BadRequest("Refresh token is required for logout");
 
@@ -265,7 +272,18 @@ namespace Api.Controller
             // Attempt to get user info with current access token
             var userInfoUrl = $"{keycloakOptions.Value.AuthServerUrl}/realms/{keycloakOptions.Value.Realm}/protocol/openid-connect/userinfo";
             var userInfoRequest = new HttpRequestMessage(HttpMethod.Get, userInfoUrl);
-            userInfoRequest.Headers.Authorization = new("Bearer", Request.Headers.Authorization.ToString().Replace("Bearer ", ""));
+
+            string accessToken = null;
+            if (Request.Headers.TryGetValue("Authorization", out var authHeader))
+            {
+                var headerValue = authHeader.FirstOrDefault();
+                if (!string.IsNullOrEmpty(headerValue) && headerValue.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    accessToken = headerValue.Substring("Bearer ".Length).Trim();
+                }
+            }
+
+            userInfoRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken ?? string.Empty);
 
             var response = await policy.ExecuteAsync(async () =>
                 await httpClient.SendAsync(userInfoRequest)

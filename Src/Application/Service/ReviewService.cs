@@ -56,8 +56,8 @@ public class ReviewService(
             var reviewEntity = await reviewContext.Reviews.FindAsync(reviewId);
             if (reviewEntity == null) return Result.Fail("Review not found");
 
-            if (deleter.ToString() != reviewEntity.AuthorId.ToString()) 
-                return Result.Fail(new Error("Unauthorized to delete this review").CausedBy(new UnauthorizedAccessException("Unauthorized to delete this review")));
+            if (deleter != reviewEntity.AuthorId) 
+                return Result.Fail(new Error("Unauthorized to delete this review").CausedBy(new UnauthorizedAccessException()));
 
             reviewContext.Reviews.Remove(reviewEntity);
             await reviewContext.SaveChangesAsync();
@@ -201,7 +201,7 @@ public class ReviewService(
         try 
         {
             var query = reviewContext.Reviews
-                .Where(r => r.ReferenceType.ToString() == referenceType.ToString() && !r.IsDeleted)
+                .Where(r => r.ReferenceType.Equals(referenceType) && !r.IsDeleted)
                 .Include(r => r.Likes)
                 .Include(r => r.Dislikes);
 
@@ -274,8 +274,8 @@ public class ReviewService(
             var reviewEntity = await reviewContext.Reviews.FindAsync(request.ReviewId);
             if (reviewEntity == null) return Result.Fail("Review not found");
 
-            if (updater.ToString() != reviewEntity.AuthorId.ToString())
-                return Result.Fail(new Error("Unauthorized to update this review").CausedBy(new UnauthorizedAccessException("Unauthorized to update this review")));
+            if (updater != reviewEntity.AuthorId)
+                return Result.Fail(new Error("Unauthorized to update this review").CausedBy(new UnauthorizedAccessException()));
 
             // Map updated properties
             var domainReview = mapper.Map<Review>(reviewEntity);
