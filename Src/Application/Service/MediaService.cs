@@ -39,23 +39,56 @@ public class MediaService: IMediaService
     {
         var result = await tMDbClient.GetMovieAsync(referenceId, cancellationToken: cancellationToken);
         if (result == null)
-        {
             return Result.Fail<MediaDetailsDTO>("Movie not found");
-        }
 
         return Result.Ok(mapper.Map<MediaDetailsDTO>(result));
+    }
+
+    public async Task<Result<byte[]>> GetMoviePosterImageAsync(string referenceId, CancellationToken cancellationToken = default)
+    {
+        var movie = await tMDbClient.GetMovieAsync(referenceId, cancellationToken: cancellationToken);
+        if (movie == null)
+            return Result.Fail<byte[]>("Movie not found");
+        await tMDbClient.GetConfigAsync();
+        var poster = await tMDbClient.GetImageBytesAsync("w500", movie.PosterPath, true, cancellationToken);
+        if (poster == null)
+            return Result.Fail<byte[]>("Movie poster not found");
+
+        return Result.Ok(poster);
+    }
+
+    public async Task<Result<byte[]>> GetTvShowPosterImageAsync(string referenceId, CancellationToken cancellationToken = default)
+    {
+        var tvShow = await tMDbClient.GetTvShowAsync(int.Parse(referenceId), cancellationToken: cancellationToken);
+        if (tvShow == null)
+            return Result.Fail<byte[]>("TV Show not found");
+
+        var poster = await tMDbClient.GetImageBytesAsync("w500", tvShow.PosterPath, true, cancellationToken);
+        if (poster == null)
+            return Result.Fail<byte[]>("TV Show poster not found");
+
+        return Result.Ok(poster);
+    }
+
+    public async Task<Result<byte[]>> GetPosterImageAsync(string referenceId, ReferenceType referenceType, CancellationToken cancellationToken = default)
+    {
+        return referenceType switch
+        {
+            ReferenceType.Movie => await GetMoviePosterImageAsync(referenceId, cancellationToken),
+            ReferenceType.TV => await GetTvShowPosterImageAsync(referenceId, cancellationToken),
+            _ => Result.Fail("Invalid reference type")
+        };
     }
 
     public async Task<Result<MediaDetailsDTO>> GetTvShowDetailsAsync(string referenceId, CancellationToken cancellationToken)
     {
         var result = await tMDbClient.GetTvShowAsync(int.Parse(referenceId), cancellationToken: cancellationToken);
         if (result == null)
-        {
             return Result.Fail<MediaDetailsDTO>("TV Show not found");
-        }
 
         return Result.Ok(mapper.Map<MediaDetailsDTO>(result));
     }
+
 
     public async Task<Result<IEnumerable<MediaDetailsDTO>>> SearchMediaAsync(string query, ReferenceType referenceType, CancellationToken cancellationToken = default)
     {

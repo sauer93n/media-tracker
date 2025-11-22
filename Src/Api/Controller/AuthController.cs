@@ -1,7 +1,9 @@
+using System.Net.Http.Headers;
 using System.Text.Json;
 using Api.Model;
 using Application.DTO;
 using Application.Policies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using CookieOptions = Api.Model.CookieOptions;
@@ -168,7 +170,7 @@ namespace Api.Controller
             {
                 HttpOnly = cookieOpts.HttpOnly,
                 Secure = cookieOpts.Secure,
-                SameSite = Enum.Parse<Microsoft.AspNetCore.Http.SameSiteMode>(cookieOpts.SameSite),
+                SameSite = Enum.Parse<SameSiteMode>(cookieOpts.SameSite),
                 Expires = DateTimeOffset.UtcNow.AddSeconds(expiresIn),
                 Path = cookieOpts.Path
             };
@@ -180,7 +182,7 @@ namespace Api.Controller
             {
                 HttpOnly = cookieOpts.HttpOnly,
                 Secure = cookieOpts.Secure,
-                SameSite = Enum.Parse<Microsoft.AspNetCore.Http.SameSiteMode>(cookieOpts.SameSite),
+                SameSite = Enum.Parse<SameSiteMode>(cookieOpts.SameSite),
                 Expires = DateTimeOffset.UtcNow.AddDays(7), // Refresh token typically lasts longer
                 Path = cookieOpts.Path
             };
@@ -207,6 +209,7 @@ namespace Api.Controller
         /// </summary>
         /// <returns>Success message</returns>
         [HttpPost("logout")]
+        [Authorize]
         public async Task<IActionResult> Logout()
         {
             var httpClient = httpClientFactory.CreateClient();
@@ -252,70 +255,23 @@ namespace Api.Controller
         /// </summary>
         /// <returns>User profile with id, username, email, and other details</returns>
         [HttpGet("me")]
+        [Authorize]
         public async Task<IActionResult> GetMe()
         {
             var httpClient = httpClientFactory.CreateClient();
             var policy = ResiliencePolicies.GetCombinedPolicy();
             var cookieOpts = cookieOptions.Value;
-            
-            // Get the access token from cookie first, then fall back to Authorization header
-            var accessToken = Request.Cookies[cookieOpts.AccessTokenCookieName];
-            
-            if (string.IsNullOrEmpty(accessToken))
-            {
-                // Fall back to Authorization header for backward compatibility
-                var authHeader = Request.Headers.Authorization.ToString();
-                if (!authHeader.StartsWith("Bearer "))
-                {
-                    // Try to refresh using refresh token
-                    var refreshToken = Request.Cookies[cookieOpts.RefreshTokenCookieName];
-                    if (string.IsNullOrEmpty(refreshToken))
-                        return Unauthorized("No valid tokens found");
-                    
-                    var refreshResult = await RefreshAccessTokenAsync(httpClient, policy, refreshToken);
-                    if (!refreshResult.IsSuccess)
-                        return Unauthorized("Token refresh failed");
-                    
-                    accessToken = refreshResult.AccessToken;
-                }
-                else
-                {
-                    accessToken = authHeader.Replace("Bearer ", "");
-                }
-            }
 
             // Attempt to get user info with current access token
             var userInfoUrl = $"{keycloakOptions.Value.AuthServerUrl}/realms/{keycloakOptions.Value.Realm}/protocol/openid-connect/userinfo";
             var userInfoRequest = new HttpRequestMessage(HttpMethod.Get, userInfoUrl);
-            userInfoRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+            userInfoRequest.Headers.Authorization = new("Bearer", Request.Headers.Authorization.ToString().Replace("Bearer ", ""));
 
             var response = await policy.ExecuteAsync(async () =>
                 await httpClient.SendAsync(userInfoRequest)
             );
 
             var content = await response.Content.ReadAsStringAsync();
-
-            // If 401 Unauthorized, try refreshing the token
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-            {
-                var refreshToken = Request.Cookies[cookieOpts.RefreshTokenCookieName];
-                if (string.IsNullOrEmpty(refreshToken))
-                    return Unauthorized("Token expired and no refresh token available");
-
-                var refreshResult = await RefreshAccessTokenAsync(httpClient, policy, refreshToken);
-                if (!refreshResult.IsSuccess)
-                    return Unauthorized("Token refresh failed");
-
-                accessToken = refreshResult.AccessToken;
-
-                // Retry the userinfo request with new token
-                userInfoRequest = new HttpRequestMessage(HttpMethod.Get, userInfoUrl);
-                userInfoRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-                response = await policy.ExecuteAsync(async () =>
-                    await httpClient.SendAsync(userInfoRequest)
-                );
-                content = await response.Content.ReadAsStringAsync();
-            }
 
             if (!response.IsSuccessStatusCode)
                 return Unauthorized(content);
@@ -336,102 +292,5 @@ namespace Api.Controller
 
             return Ok(userInfo);
         }
-
-        /// <summary>
-        /// Refreshes the access token using the refresh token
-        /// </summary>
-        /// <param name="httpClient">HTTP client for making requests</param>
-        /// <param name="policy">Resilience policy for the request</param>
-        /// <param name="refreshToken">The refresh token</param>
-        /// <returns>Token refresh result with new access token</returns>
-        private async Task<TokenRefreshResult> RefreshAccessTokenAsync(
-            HttpClient httpClient,
-            Polly.IAsyncPolicy<HttpResponseMessage> policy,
-            string refreshToken)
-        {
-            try
-            {
-                var tokenUrl = $"{keycloakOptions.Value.AuthServerUrl}/realms/{keycloakOptions.Value.Realm}/protocol/openid-connect/token";
-                
-                var refreshData = new Dictionary<string, string>
-                {
-                    ["client_id"] = keycloakOptions.Value.UserClientId,
-                    ["client_secret"] = keycloakOptions.Value.UserClientSecret,
-                    ["grant_type"] = "refresh_token",
-                    ["refresh_token"] = refreshToken
-                };
-
-                var response = await policy.ExecuteAsync(async () =>
-                    await httpClient.PostAsync(tokenUrl, new FormUrlEncodedContent(refreshData))
-                );
-
-                var content = await response.Content.ReadAsStringAsync();
-
-                if (!response.IsSuccessStatusCode)
-                    return TokenRefreshResult.Failure("Failed to refresh token");
-
-                using var doc = JsonDocument.Parse(content);
-                var root = doc.RootElement;
-                var newAccessToken = root.GetProperty("access_token").GetString() ?? throw new InvalidOperationException("Access token not found in refresh response");
-                var newRefreshToken = root.TryGetProperty("refresh_token", out var rt) ? rt.GetString() : null;
-                var expiresIn = root.GetProperty("expires_in").GetInt32();
-
-                // Update cookies with new tokens
-                var cookieOpts = cookieOptions.Value;
-                var accessTokenCookieOptions = new Microsoft.AspNetCore.Http.CookieOptions
-                {
-                    HttpOnly = cookieOpts.HttpOnly,
-                    Secure = cookieOpts.Secure,
-                    SameSite = Enum.Parse<SameSiteMode>(cookieOpts.SameSite),
-                    Expires = DateTimeOffset.UtcNow.AddSeconds(expiresIn),
-                    Path = cookieOpts.Path
-                };
-
-                if (!string.IsNullOrEmpty(cookieOpts.Domain))
-                    accessTokenCookieOptions.Domain = cookieOpts.Domain;
-
-                Response.Cookies.Append(cookieOpts.AccessTokenCookieName, newAccessToken, accessTokenCookieOptions);
-
-                // Update refresh token if provided
-                if (!string.IsNullOrEmpty(newRefreshToken))
-                {
-                    var refreshTokenCookieOptions = new Microsoft.AspNetCore.Http.CookieOptions
-                    {
-                        HttpOnly = cookieOpts.HttpOnly,
-                        Secure = cookieOpts.Secure,
-                        SameSite = Enum.Parse<SameSiteMode>(cookieOpts.SameSite),
-                        Expires = DateTimeOffset.UtcNow.AddDays(7),
-                        Path = cookieOpts.Path
-                    };
-
-                    if (!string.IsNullOrEmpty(cookieOpts.Domain))
-                        refreshTokenCookieOptions.Domain = cookieOpts.Domain;
-
-                    Response.Cookies.Append(cookieOpts.RefreshTokenCookieName, newRefreshToken, refreshTokenCookieOptions);
-                }
-
-                return TokenRefreshResult.Success(newAccessToken);
-            }
-            catch (Exception ex)
-            {
-                return TokenRefreshResult.Failure($"Token refresh exception: {ex.Message}");
-            }
-        }
-    }
-
-    /// <summary>
-    /// Result of token refresh operation
-    /// </summary>
-    internal class TokenRefreshResult
-    {
-        public bool IsSuccess { get; set; }
-        public string? AccessToken { get; set; }
-        public string? ErrorMessage { get; set; }
-
-        public static TokenRefreshResult Success(string accessToken) =>
-            new() { IsSuccess = true, AccessToken = accessToken };
-
-        public static TokenRefreshResult Failure(string errorMessage) =>
-            new() { IsSuccess = false, ErrorMessage = errorMessage };
     }
 }

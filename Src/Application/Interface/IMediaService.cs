@@ -11,4 +11,7 @@ public interface IMediaService
     Task<Result<IEnumerable<MediaDetailsDTO>>> SearchMediaAsync(string query, ReferenceType referenceType, CancellationToken cancellationToken = default);
     Task<Result<IEnumerable<MediaDetailsDTO>>> SearchMoviesAsync(string query, CancellationToken cancellationToken = default);
     Task<Result<IEnumerable<MediaDetailsDTO>>> SearchTvShowsAsync(string query, CancellationToken cancellationToken = default);
+    Task<Result<byte[]>> GetPosterImageAsync(string referenceId, ReferenceType referenceType, CancellationToken cancellationToken = default);
+    Task<Result<byte[]>> GetMoviePosterImageAsync(string referenceId, CancellationToken cancellationToken = default);
+    Task<Result<byte[]>> GetTvShowPosterImageAsync(string referenceId, CancellationToken cancellationToken = default);
 }

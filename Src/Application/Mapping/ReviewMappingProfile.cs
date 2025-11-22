@@ -11,6 +11,8 @@ public class ReviewMappingProfile : Profile
             .ForMember(dest => dest.AuthorId, opt => opt.MapFrom(src => src.Author.Id))
             .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
             .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Rating))
+            .ForMember(dest => dest.Likes, opt => opt.MapFrom(src => src.Likes))
+            .ForMember(dest => dest.Dislikes, opt => opt.MapFrom(src => src.Dislikes))
             .ForMember(dest => dest.ReferenceId, opt => opt.MapFrom(src => src.ReferenceId));
 
         CreateMap<CreateReviewRequest, Domain.Entity.Review>()
@@ -23,8 +25,6 @@ public class ReviewMappingProfile : Profile
             .ForMember(dest => dest.AuthorId, opt => opt.MapFrom(src => src.Author.Id))
             .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
             .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Rating))
-            .ForMember(dest => dest.Likes, opt => opt.MapFrom(src => src.Likes))
-            .ForMember(dest => dest.Dislikes, opt => opt.MapFrom(src => src.Dislikes))
             .ForMember(dest => dest.ReferenceId, opt => opt.MapFrom(src => src.ReferenceId));
 
         CreateMap<Infrastructure.Entity.Review, Domain.Entity.Review>()
@@ -32,8 +32,8 @@ public class ReviewMappingProfile : Profile
             .ForMember(dest => dest.Author, opt => opt.MapFrom(src => new Domain.Entity.User(src.AuthorId)))
             .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
             .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Rating))
-            .ForMember(dest => dest.Likes, opt => opt.MapFrom(src => src.Likes))
-            .ForMember(dest => dest.Dislikes, opt => opt.MapFrom(src => src.Dislikes))
+            .ForMember(dest => dest.Likes, opt => opt.MapFrom(src => src.Likes.Count))
+            .ForMember(dest => dest.Dislikes, opt => opt.MapFrom(src => src.Dislikes.Count))
             .ForMember(dest => dest.ReferenceId, opt => opt.MapFrom(src => src.ReferenceId));
     }
 }

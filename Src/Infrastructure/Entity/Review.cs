@@ -14,9 +14,9 @@ public class Review
 
     public double Rating { get; set; }
 
-    public int Likes { get; set; }
+    public ICollection<Like> Likes { get; set; }
 
-    public int Dislikes { get; set; }
+    public ICollection<Dislike> Dislikes { get; set; }
 
     public string ReferenceId { get; set; }
     

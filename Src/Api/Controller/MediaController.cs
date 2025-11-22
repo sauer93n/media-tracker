@@ -49,4 +49,18 @@ public class MediaController(IMediaService mediaService) : ControllerBase
 
         return Ok(pagedResult);
     }
+
+    [HttpGet("poster/{referenceType}/{referenceId}")]
+    public async Task<IActionResult> GetPosterImage([FromRoute] ReferenceType referenceType,
+        [FromRoute] string referenceId,
+        CancellationToken cancellationToken)
+    {
+        var result = await mediaService.GetPosterImageAsync(referenceId, referenceType, cancellationToken);
+
+        if (result.IsFailed) return BadRequest(result.Errors);
+
+        return File(result.Value, "image/jpeg");
+    }
+
+    
 }

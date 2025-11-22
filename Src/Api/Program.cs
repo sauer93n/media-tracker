@@ -16,7 +16,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
     options =>
     {
-        options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
             In = ParameterLocation.Header,
             Description = "Please enter a valid token",
@@ -74,6 +74,7 @@ builder.Services.AddScoped<IMediaService, MediaService>();
 
 // Add HttpClient factory for use in controllers
 builder.Services.AddHttpClient();
+builder.Services.AddHttpClient("middleware").AddResiliencePolicies();
 
 builder.Services.Configure<KeycloakOptions>(builder.Configuration.GetSection("KeycloakOptions"));
 builder.Services.Configure<ApplicationOptions>(builder.Configuration.GetSection("ApplicationOptions"));
@@ -95,10 +96,12 @@ builder.Services.AddAuthorization();
 builder.Services.AddAutoMapperProfiles(typeof(IReviewService).Assembly);
 
 var app = builder.Build();
+app.UseHttpsRedirection();
 
+app.UseCors("AllowFrontend");
+app.UseCookieTokenMiddleware();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCors("AllowFrontend");
 app.UseDomainUserMiddleware();
 
 app.MapControllers();
@@ -112,7 +115,5 @@ if (app.Environment.IsDevelopment())
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Media Tracker API v1");
     });
 }
-
-app.UseHttpsRedirection();
 
 app.Run();
