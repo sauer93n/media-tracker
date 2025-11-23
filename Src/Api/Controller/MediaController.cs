@@ -24,7 +24,7 @@ public class MediaController(IMediaService mediaService) : ControllerBase
     [HttpGet("search/{referenceType}")]
     public async Task<IActionResult> SearchMedia([FromRoute] ReferenceType referenceType, [FromQuery] string query, [FromQuery] GridifyQuery gridifyQuery, CancellationToken cancellationToken)
     {
-        var result = await mediaService.SearchMediaAsync(query, referenceType, cancellationToken);
+        var result = await mediaService.SearchMediaAsync(query, gridifyQuery, referenceType, cancellationToken);
 
         if (result.IsFailed) return BadRequest(result.Errors);
 

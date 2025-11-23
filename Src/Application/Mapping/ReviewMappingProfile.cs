@@ -8,6 +8,7 @@ public class ReviewMappingProfile : Profile
     public ReviewMappingProfile()
     {
         CreateMap<Domain.Entity.Review, ReviewDTO>()
+            .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.AuthorId, opt => opt.MapFrom(src => src.Author.Id))
             .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
             .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Rating))
@@ -25,15 +26,17 @@ public class ReviewMappingProfile : Profile
             .ForMember(dest => dest.AuthorId, opt => opt.MapFrom(src => src.Author.Id))
             .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
             .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Rating))
-            .ForMember(dest => dest.ReferenceId, opt => opt.MapFrom(src => src.ReferenceId));
+            .ForMember(dest => dest.ReferenceId, opt => opt.MapFrom(src => src.ReferenceId))
+            .ForMember(dest => dest.Likes, opt => opt.Ignore())
+            .ForMember(dest => dest.Dislikes, opt => opt.Ignore());
 
         CreateMap<Infrastructure.Entity.Review, Domain.Entity.Review>()
             .ForMember(dest => dest.Id, opt => opt.MapFrom(src => src.Id))
             .ForMember(dest => dest.Author, opt => opt.MapFrom(src => new Domain.Entity.User(src.AuthorId)))
             .ForMember(dest => dest.Content, opt => opt.MapFrom(src => src.Content))
             .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.Rating))
-            .ForMember(dest => dest.Likes, opt => opt.MapFrom(src => src.Likes.Count))
-            .ForMember(dest => dest.Dislikes, opt => opt.MapFrom(src => src.Dislikes.Count))
+            .ForMember(dest => dest.Likes, opt => opt.MapFrom(src => src.Likes == null ? 0 : src.Likes.Count))
+            .ForMember(dest => dest.Dislikes, opt => opt.MapFrom(src => src.Dislikes == null ? 0 : src.Dislikes.Count))
             .ForMember(dest => dest.ReferenceId, opt => opt.MapFrom(src => src.ReferenceId));
     }
 }

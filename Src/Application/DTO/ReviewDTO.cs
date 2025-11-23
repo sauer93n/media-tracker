@@ -2,6 +2,7 @@ namespace Application.DTO;
 
 public class ReviewDTO
 {
+    public Guid Id { get; set; }
     public Guid AuthorId { get; set; }
     public string Content { get; set; }
     public double Rating { get; set; }

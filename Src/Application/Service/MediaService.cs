@@ -3,6 +3,7 @@ using Application.Interface;
 using Application.Model;
 using AutoMapper;
 using FluentResults;
+using Gridify;
 using Microsoft.Extensions.Options;
 using TMDbLib.Client;
 
@@ -46,15 +47,21 @@ public class MediaService: IMediaService
 
     public async Task<Result<byte[]>> GetMoviePosterImageAsync(string referenceId, CancellationToken cancellationToken = default)
     {
-        var movie = await tMDbClient.GetMovieAsync(referenceId, cancellationToken: cancellationToken);
-        if (movie == null)
-            return Result.Fail<byte[]>("Movie not found");
-        await tMDbClient.GetConfigAsync();
-        var poster = await tMDbClient.GetImageBytesAsync("w500", movie.PosterPath, true, cancellationToken);
-        if (poster == null)
-            return Result.Fail<byte[]>("Movie poster not found");
+        try {
+            var movie = await tMDbClient.GetMovieAsync(referenceId, cancellationToken: cancellationToken);
+            if (movie == null)
+                return Result.Fail<byte[]>("Movie not found");
+            await tMDbClient.GetConfigAsync();
+            var poster = await tMDbClient.GetImageBytesAsync("w500", movie.PosterPath, true, cancellationToken);
+            if (poster == null)
+                return Result.Fail<byte[]>("Movie poster not found");
 
-        return Result.Ok(poster);
+            return Result.Ok(poster);
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail<byte[]>($"Error retrieving movie poster: {ex.Message}");
+        }
     }
 
     public async Task<Result<byte[]>> GetTvShowPosterImageAsync(string referenceId, CancellationToken cancellationToken = default)
@@ -90,19 +97,19 @@ public class MediaService: IMediaService
     }
 
 
-    public async Task<Result<IEnumerable<MediaDetailsDTO>>> SearchMediaAsync(string query, ReferenceType referenceType, CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<MediaDetailsDTO>>> SearchMediaAsync(string query, GridifyQuery gridifyQuery, ReferenceType referenceType, CancellationToken cancellationToken = default)
     {
         return referenceType switch
         {
-            ReferenceType.Movie => await SearchMoviesAsync(query, cancellationToken),
-            ReferenceType.TV => await SearchTvShowsAsync(query, cancellationToken),
+            ReferenceType.Movie => await SearchMoviesAsync(query, gridifyQuery, cancellationToken),
+            ReferenceType.TV => await SearchTvShowsAsync(query, gridifyQuery, cancellationToken),
             _ => Result.Fail<IEnumerable<MediaDetailsDTO>>("Invalid reference type")
         };
     }
 
-    public async Task<Result<IEnumerable<MediaDetailsDTO>>> SearchMoviesAsync(string query, CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<MediaDetailsDTO>>> SearchMoviesAsync(string query, GridifyQuery gridifyQuery, CancellationToken cancellationToken = default)
     {
-        var searchResults = await tMDbClient.SearchMovieAsync(query, cancellationToken: cancellationToken);
+        var searchResults = await tMDbClient.SearchMovieAsync(query, includeAdult: true, cancellationToken: cancellationToken);
         
         if (searchResults == null || searchResults.TotalResults == 0) 
             return Result.Fail<IEnumerable<MediaDetailsDTO>>("No movies found");
@@ -110,18 +117,18 @@ public class MediaService: IMediaService
         var allResults = new List<MediaDetailsDTO>();
         allResults.AddRange(searchResults.Results.Select(media => mapper.Map<MediaDetailsDTO>(media)));
         
-        while (searchResults != null && searchResults.TotalResults != 0 && searchResults.Page < searchResults.TotalPages)
+        while (searchResults != null && searchResults.TotalResults != 0 && searchResults.Page < gridifyQuery.Page)
         {
-            searchResults = await tMDbClient.SearchMovieAsync(query, searchResults.Page + 1, cancellationToken: cancellationToken);
+            searchResults = await tMDbClient.SearchMovieAsync(query, includeAdult: true, page: searchResults.Page + 1, cancellationToken: cancellationToken);
             allResults.AddRange(searchResults.Results.Select(media => mapper.Map<MediaDetailsDTO>(media)));
         }
 
         return Result.Ok(allResults.AsEnumerable());
     }
 
-    public async Task<Result<IEnumerable<MediaDetailsDTO>>> SearchTvShowsAsync(string query, CancellationToken cancellationToken = default)
+    public async Task<Result<IEnumerable<MediaDetailsDTO>>> SearchTvShowsAsync(string query, GridifyQuery gridifyQuery, CancellationToken cancellationToken = default)
     {
-        var searchResults = await tMDbClient.SearchTvShowAsync(query, cancellationToken: cancellationToken);
+        var searchResults = await tMDbClient.SearchTvShowAsync(query, includeAdult: true, cancellationToken: cancellationToken);
         
         if (searchResults == null || searchResults.TotalResults == 0) 
             return Result.Fail<IEnumerable<MediaDetailsDTO>>("No TV shows found");
@@ -129,9 +136,9 @@ public class MediaService: IMediaService
         var allResults = new List<MediaDetailsDTO>();
         allResults.AddRange(searchResults.Results.Select(media => mapper.Map<MediaDetailsDTO>(media)));
         
-        while (searchResults != null && searchResults.TotalResults != 0 && searchResults.Page < searchResults.TotalPages)
+        while (searchResults != null && searchResults.TotalResults != 0 && searchResults.Page < gridifyQuery.Page)
         {
-            searchResults = await tMDbClient.SearchTvShowAsync(query, searchResults.Page + 1, cancellationToken: cancellationToken);
+            searchResults = await tMDbClient.SearchTvShowAsync(query, searchResults.Page + 1, includeAdult: true, cancellationToken: cancellationToken);
             allResults.AddRange(searchResults.Results.Select(media => mapper.Map<MediaDetailsDTO>(media)));
         }
 
