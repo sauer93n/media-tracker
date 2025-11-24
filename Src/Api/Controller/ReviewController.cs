@@ -60,7 +60,9 @@ public class ReviewController(IReviewService reviewService) : ControllerBase
     [HttpGet("")]
     public async Task<IActionResult> GetReviews([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
-        var result = await reviewService.GetReviewsAsync(pageNumber, pageSize);
+        var domainUser = HttpContext.GetDomainUser();
+        if (domainUser == null) return Unauthorized("User not found");
+        var result = await reviewService.GetReviewsAsync(domainUser, pageNumber, pageSize);
 
         if (result.IsFailed) return BadRequest(result.Errors);
 
@@ -70,7 +72,10 @@ public class ReviewController(IReviewService reviewService) : ControllerBase
     [HttpGet("type/{referenceType}")]
     public async Task<IActionResult> GetReviewsByType([FromRoute] ReferenceType referenceType, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
-        var result = await reviewService.GetReviewsForTypeAsync(referenceType, pageNumber, pageSize);
+        var domainUser = HttpContext.GetDomainUser();
+        if (domainUser == null) return Unauthorized("User not found");
+
+        var result = await reviewService.GetReviewsForTypeAsync(domainUser, referenceType, pageNumber, pageSize);
 
         if (result.IsFailed) return BadRequest(result.Errors);
 
@@ -84,7 +89,7 @@ public class ReviewController(IReviewService reviewService) : ControllerBase
         var domainUser = HttpContext.GetDomainUser();
         if (domainUser == null) return Unauthorized("User not found");
 
-        var result = await reviewService.GetUserReviewsAsync(domainUser.Id, pageNumber, pageSize);
+        var result = await reviewService.GetUserReviewsAsync(domainUser, pageNumber, pageSize);
 
         if (result.IsFailed) return BadRequest(result.Errors);
 
@@ -94,7 +99,10 @@ public class ReviewController(IReviewService reviewService) : ControllerBase
     [HttpGet("{reviewId}")]
     public async Task<IActionResult> GetReviewDetails([FromRoute] Guid reviewId)
     {
-        var result = await reviewService.GetReviewByIdAsync(reviewId);
+        var domainUser = HttpContext.GetDomainUser();
+        if (domainUser == null) return Unauthorized("User not found");
+
+        var result = await reviewService.GetReviewByIdAsync(domainUser, reviewId);
 
         if (result.IsFailed) return BadRequest(result.Errors);
 

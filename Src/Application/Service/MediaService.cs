@@ -69,7 +69,7 @@ public class MediaService: IMediaService
         var tvShow = await tMDbClient.GetTvShowAsync(int.Parse(referenceId), cancellationToken: cancellationToken);
         if (tvShow == null)
             return Result.Fail<byte[]>("TV Show not found");
-
+        await tMDbClient.GetConfigAsync();
         var poster = await tMDbClient.GetImageBytesAsync("w500", tvShow.PosterPath, true, cancellationToken);
         if (poster == null)
             return Result.Fail<byte[]>("TV Show poster not found");

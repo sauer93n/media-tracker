@@ -1,5 +1,6 @@
 using Domain.AggregateRoot;
 using Domain.Event;
+using Domain.ValueObject;
 
 namespace Domain.Entity;
 
@@ -11,6 +12,7 @@ public class Review : BaseAggregateRoot
     public int Likes { get; private set; }
     public int Dislikes { get; private set; }
     public string ReferenceId { get; init; }
+    public ReferenceType ReferenceType { get; init; }
 
     private Review(
         User author,
