@@ -1,17 +1,55 @@
+# Stage 1: Build
 FROM mcr.microsoft.com/dotnet/sdk:9.0@sha256:3fcf6f1e809c0553f9feb222369f58749af314af6f063f389cbd2f913b4ad556 AS build
-WORKDIR /App
+WORKDIR /src
+
+# Copy solution and project files first for better layer caching
+COPY Src/MediaTracker.sln ./
+COPY Src/Api/Api.csproj ./Api/
+COPY Src/Application/Application.csproj ./Application/
+COPY Src/Domain/Domain.csproj ./Domain/
+COPY Src/Infrastructure/Infrastructure.csproj ./Infrastructure/
+
+# Restore dependencies as a separate layer
+RUN dotnet restore
+
+# Copy the rest of the source code
+COPY Src/ ./
+
+# Build and publish the application
+RUN dotnet publish ./Api/Api.csproj \
+    --configuration Release \
+    --no-restore \
+    --output /app/publish \
+    /p:UseAppHost=false
+
+# Stage 2: Runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0@sha256:b4bea3a52a0a77317fa93c5bbdb076623f81e3e2f201078d89914da71318b5d8 AS runtime
+WORKDIR /app
+
+# Create non-root user for security
+RUN groupadd -r appuser && useradd -r -g appuser appuser
+
+# Copy published files from build stage
+COPY --from=build /app/publish .
+
+# Set ownership to non-root user
+RUN chown -R appuser:appuser /app
+
+# Switch to non-root user
+USER appuser
+
+# Configure environment
+ENV ASPNETCORE_URLS=http://+:5000 \
+    ASPNETCORE_ENVIRONMENT=Production \
+    DOTNET_RUNNING_IN_CONTAINER=true \
+    DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+
+# Expose port
 EXPOSE 5000
 
-# ENV ASPNETCORE_URLS=http://+:5000
-# Copy everything
-COPY /Src ./
-# Restore as distinct layers
-RUN dotnet restore
-# Build and publish a release
-RUN dotnet publish -o out
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
 
-# Build runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:9.0@sha256:b4bea3a52a0a77317fa93c5bbdb076623f81e3e2f201078d89914da71318b5d8
-WORKDIR /App
-COPY --from=build /App/out .
+# Run the application
 ENTRYPOINT ["dotnet", "Api.dll"]
