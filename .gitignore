@@ -80,7 +80,6 @@ schema.drawio
 .vscode/launch.json
 Src/docfx.json
 Src/index.md
-Src/MediaTracker.sln
 Src/toc.yml
 Src/.vscode/settings.json
 Src/Api/.manifest
