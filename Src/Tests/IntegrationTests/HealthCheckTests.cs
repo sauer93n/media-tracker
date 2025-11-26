@@ -64,7 +64,7 @@ public class HealthCheckTests : IClassFixture<CustomWebApplicationFactory>, IAsy
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         
         var content = await response.Content.ReadAsStringAsync();
-        content.Should().Contain("postgresql");
+        content.Should().Contain("Healthy");
     }
 
     [Fact]

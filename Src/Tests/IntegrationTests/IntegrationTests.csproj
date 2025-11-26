@@ -28,9 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../Src/Api/Api.csproj" />
-    <ProjectReference Include="../../Src/Application/Application.csproj" />
-    <ProjectReference Include="../../Src/Infrastructure/Infrastructure.csproj" />
+    <ProjectReference Include="../../Api/Api.csproj" />
+    <ProjectReference Include="../../Application/Application.csproj" />
+    <ProjectReference Include="../../Infrastructure/Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

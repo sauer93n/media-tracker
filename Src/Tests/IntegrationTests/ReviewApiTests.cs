@@ -1,9 +1,7 @@
 using System.Net;
-using System.Net.Http.Json;
 using Application.DTO;
 using FluentAssertions;
 using Infrastructure.Context;
-using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
 namespace MediaTracker.IntegrationTests;
@@ -46,7 +44,7 @@ public class ReviewApiTests : IClassFixture<CustomWebApplicationFactory>, IAsync
     public async Task GetReviews_WithoutAuthentication_Returns_Unauthorized()
     {
         // Act
-        var response = await _client.GetAsync("/api/reviews");
+        var response = await _client.GetAsync("/api/review");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
@@ -58,10 +56,9 @@ public class ReviewApiTests : IClassFixture<CustomWebApplicationFactory>, IAsync
         // Arrange
         var request = new CreateReviewRequest
         {
-            Title = "Test Review",
             Content = "This is a test review content",
             Rating = 4,
-            ReferenceId = Guid.NewGuid(),
+            ReferenceId = Guid.NewGuid().ToString(),
             ReferenceType = ReferenceType.Movie,
             AuthorId = Guid.NewGuid()
         };
@@ -73,7 +70,7 @@ public class ReviewApiTests : IClassFixture<CustomWebApplicationFactory>, IAsync
         // 3. Use _factory.CreateAuthenticatedClient(token)
 
         // Act
-        var response = await _client.PostAsJsonAsync("/api/reviews", request);
+        var response = await _client.PostAsJsonAsync("/api/review/create", request);
 
         // Assert
         // Without authentication, this should return Unauthorized

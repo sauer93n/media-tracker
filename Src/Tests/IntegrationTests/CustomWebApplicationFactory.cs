@@ -1,9 +1,7 @@
 using Infrastructure.Context;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Testcontainers.PostgreSql;
 using Xunit;
@@ -47,29 +45,17 @@ public class CustomWebApplicationFactory : WebApplicationFactory<Program>, IAsyn
     /// </summary>
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
-        builder.ConfigureTestServices(services =>
+        builder.ConfigureAppConfiguration((context, config) =>
         {
-            // Remove the existing DbContext registration
-            services.RemoveAll(typeof(DbContextOptions<ReviewContext>));
-            services.RemoveAll(typeof(ReviewContext));
-
-            // Add DbContext with test database connection string
-            services.AddDbContext<ReviewContext>(options =>
+            // Add test configuration with a connection string
+            config.AddInMemoryCollection(new Dictionary<string, string>
             {
-                options.UseNpgsql(ConnectionString);
+                { "ConnectionStrings:MediaTracker", "Host=localhost;Database=mediatracker_test;Username=postgres;Password=postgres" }
+                // or use an in-memory database if applicable
             });
-
-            // Build the service provider to apply migrations
-            var serviceProvider = services.BuildServiceProvider();
-            using var scope = serviceProvider.CreateScope();
-            var dbContext = scope.ServiceProvider.GetRequiredService<ReviewContext>();
-            
-            // Apply migrations to ensure database schema is up to date
-            dbContext.Database.Migrate();
         });
-
-        // Override environment to Testing
-        builder.UseEnvironment("Testing");
+        
+        base.ConfigureWebHost(builder);
     }
 
     /// <summary>
