@@ -27,5 +27,21 @@ public class ReviewEntityTypeConfiguration : IEntityTypeConfiguration<Review>
         builder
             .Property(r => r.Id)
             .IsRequired();
+
+        builder
+            .Property(r => r.Rating)
+            .IsRequired();
+
+        builder
+            .HasMany(r => r.Likes)
+            .WithOne()
+            .HasForeignKey(l => l.ReviewId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder
+            .HasMany(r => r.Dislikes)
+            .WithOne()
+            .HasForeignKey(d => d.ReviewId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

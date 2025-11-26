@@ -1,4 +1,4 @@
-namespace Infrastructure.Entity;
+namespace Domain.ValueObject;
 
 public enum ReferenceType
 {

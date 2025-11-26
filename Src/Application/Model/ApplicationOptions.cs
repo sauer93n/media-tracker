@@ -2,5 +2,5 @@ namespace Application.Model;
 
 public class ApplicationOptions
 {
-    public string TmDbApiKey { get; set; }    
+    public string TmDbApiKey { get; set; }
 }

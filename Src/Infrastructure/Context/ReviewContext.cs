@@ -12,6 +12,13 @@ public class ReviewContext : DbContext
     public ReviewContext(DbContextOptions<ReviewContext> options)
         : base(options)
     {
-        
+
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ReviewContext).Assembly);
     }
 }

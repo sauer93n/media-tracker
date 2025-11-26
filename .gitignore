@@ -80,14 +80,12 @@ schema.drawio
 .vscode/launch.json
 Src/docfx.json
 Src/index.md
-Src/MediaTracker.sln
 Src/toc.yml
 Src/.vscode/settings.json
 Src/Api/.manifest
 Src/Api/Api.Controller.AuthController.yml
 Src/Api/Api.Controller.ReviewController.yml
 Src/Api/Api.Controller.yml
-Src/Api/Api.csproj
 Src/Api/Api.Extensions.HttpContextExtensions.yml
 Src/Api/Api.Extensions.yml
 Src/Api/Api.http
@@ -146,7 +144,6 @@ Src/Api/Infrastructure.Context.ReviewContext.yml
 Src/Api/Infrastructure.Configuration.yml
 Src/Api/Infrastructure.Configuration.ReviewEntityTypeConfiguration.yml
 Src/Api/Domain.ValueObject.yml
-Src/Api/Program.cs
 Src/Api/toc.yml
 Src/docs/getting-started.md
 Src/docs/introduction.md

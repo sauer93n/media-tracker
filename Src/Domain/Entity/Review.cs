@@ -1,5 +1,6 @@
 using Domain.AggregateRoot;
 using Domain.Event;
+using Domain.ValueObject;
 
 namespace Domain.Entity;
 
@@ -11,6 +12,7 @@ public class Review : BaseAggregateRoot
     public int Likes { get; private set; }
     public int Dislikes { get; private set; }
     public string ReferenceId { get; init; }
+    public ReferenceType ReferenceType { get; init; }
 
     private Review(
         User author,
@@ -26,6 +28,8 @@ public class Review : BaseAggregateRoot
         ReferenceId = refId;
     }
 
+    private Review() { } // For AutoMapper
+
     public static Review Create(User author, string content, double rating, string refId)
     {
         var result = new Review(author, content, rating, refId);
@@ -33,6 +37,18 @@ public class Review : BaseAggregateRoot
         var @event = new ReviewCreatedEvent(author.Id, result.Id, content, rating, refId);
         result.AddDomainEvent(@event);
         return result;
+    }
+
+    public DomainEvent? UpdateRating(double newRating)
+    {
+        if (Rating == newRating)
+            return null;
+
+        Rating = newRating;
+        var @event = new ReviewRatingUpdatedEvent(Author.Id, Id, newRating);
+        AddDomainEvent(@event);
+
+        return @event;
     }
 
     public DomainEvent? UpdateContent(string newContent)
@@ -46,9 +62,18 @@ public class Review : BaseAggregateRoot
         return @event;
     }
 
-    public DomainEvent? AddLike(Guid reviewId, Guid userId)
+    public DomainEvent? AddLike(Guid userId)
     {
-        var @event = new LikeAddedEvent(reviewId, userId);
+        var @event = new LikeAddedEvent(Id, userId);
+
+        AddDomainEvent(@event);
+
+        return @event;
+    }
+
+    public DomainEvent? AddDislike(Guid userId)
+    {
+        var @event = new DislikeAddedEvent(Id, userId);
 
         AddDomainEvent(@event);
 
