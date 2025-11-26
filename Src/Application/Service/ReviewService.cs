@@ -53,7 +53,8 @@ public class ReviewService(
             if (deleter != reviewEntity.AuthorId)
                 return Result.Fail(new Error("Unauthorized to delete this review").CausedBy(new UnauthorizedAccessException()));
 
-            reviewContext.Reviews.Remove(reviewEntity);
+            // reviewContext.Reviews.Remove(reviewEntity);
+            reviewEntity.IsDeleted = true;
             await reviewContext.SaveChangesAsync();
             return Result.Ok();
         }
@@ -310,6 +311,9 @@ public class ReviewService(
             var domainReview = mapper.Map<Review>(reviewEntity);
             domainReview.UpdateContent(request.Content);
             domainReview.UpdateRating(request.Rating);
+
+            reviewEntity.Content = request.Content;
+            reviewEntity.Rating = request.Rating;
 
             await reviewContext.SaveChangesAsync();
 
