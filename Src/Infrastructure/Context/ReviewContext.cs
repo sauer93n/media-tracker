@@ -12,7 +12,7 @@ public class ReviewContext : DbContext
     public ReviewContext(DbContextOptions<ReviewContext> options)
         : base(options)
     {
-        
+
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

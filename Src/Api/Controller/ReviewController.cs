@@ -117,7 +117,7 @@ public class ReviewController(IReviewService reviewService) : ControllerBase
         if (domainUser == null) return Unauthorized("User not found");
 
         var result = await reviewService.UpdateReviewAsync(domainUser.Id, request);
-        
+
         if (result.HasException<UnauthorizedAccessException>())
             return Unauthorized(result.Errors);
 

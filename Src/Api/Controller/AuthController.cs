@@ -15,7 +15,7 @@ namespace Api.Controller
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
-    public class AuthController: ControllerBase
+    public class AuthController : ControllerBase
     {
         private readonly IOptions<KeycloakOptions> keycloakOptions;
         private readonly IOptions<CookieOptions> cookieOptions;

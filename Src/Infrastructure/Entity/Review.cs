@@ -19,7 +19,7 @@ public class Review
     public ICollection<Dislike> Dislikes { get; set; }
 
     public string ReferenceId { get; set; }
-    
+
     public ReferenceType ReferenceType { get; set; }
 
     public bool IsDeleted { get; set; }

@@ -16,7 +16,7 @@ public static class ResiliencePolicies
         return Policy
             .Handle<HttpRequestException>()
             .Or<TimeoutException>()
-            .OrResult<HttpResponseMessage>(r => 
+            .OrResult<HttpResponseMessage>(r =>
                 r.StatusCode == System.Net.HttpStatusCode.RequestTimeout || // 408
                 r.StatusCode == System.Net.HttpStatusCode.TooManyRequests || // 429
                 r.StatusCode == System.Net.HttpStatusCode.InternalServerError || // 500

@@ -24,7 +24,7 @@ public static class HttpContextExtensions
         var user = context.GetDomainUser();
         if (user == null)
             throw new InvalidOperationException("Domain user not found in HttpContext. Ensure the request is authenticated.");
-            
+
         return user;
     }
 }

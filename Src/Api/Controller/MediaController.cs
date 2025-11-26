@@ -62,5 +62,5 @@ public class MediaController(IMediaService mediaService) : ControllerBase
         return File(result.Value, "image/jpeg");
     }
 
-    
+
 }

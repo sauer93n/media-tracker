@@ -11,7 +11,7 @@ namespace Application.Service;
 public class ReviewService(
     ReviewContext reviewContext,
     IEventPublisher eventPublisher,
-    IMapper mapper) 
+    IMapper mapper)
     : DomainService(eventPublisher), IReviewService
 {
     public async Task<Result<ReviewDTO>> CreateReviewAsync(CreateReviewRequest request)
@@ -50,7 +50,7 @@ public class ReviewService(
             var reviewEntity = await reviewContext.Reviews.FindAsync(reviewId);
             if (reviewEntity == null) return Result.Fail("Review not found");
 
-            if (deleter != reviewEntity.AuthorId) 
+            if (deleter != reviewEntity.AuthorId)
                 return Result.Fail(new Error("Unauthorized to delete this review").CausedBy(new UnauthorizedAccessException()));
 
             reviewContext.Reviews.Remove(reviewEntity);
@@ -59,7 +59,7 @@ public class ReviewService(
         }
         catch (Exception ex)
         {
-            return Result.Fail(ex.Message); 
+            return Result.Fail(ex.Message);
         }
     }
 
@@ -164,7 +164,8 @@ public class ReviewService(
             var domainReviews = reviews.Select(mapper.Map<Review>).ToList();
             var reviewDtos = domainReviews
                 .Select(mapper.Map<ReviewDTO>)
-                .Select(i => {
+                .Select(i =>
+                {
                     i.IsLikedByUser = reviewContext.Likes.Any(l => l.ReviewId == i.Id && l.UserId == domainUser.Id);
                     i.IsDislikedByUser = reviewContext.Dislikes.Any(d => d.ReviewId == i.Id && d.UserId == domainUser.Id);
                     return i;
@@ -209,7 +210,7 @@ public class ReviewService(
             return Result.Fail<ReviewDTO>($"Error retrieving review: {ex.Message}");
         }
     }
-    
+
     public async Task<Result<PagedResult<ReviewDTO>>> GetReviewsAsync(User domainUser, int pageNumber, int pageSize)
     {
         try
@@ -229,7 +230,8 @@ public class ReviewService(
             var domainReviews = reviews.Select(mapper.Map<Review>).ToList();
             var reviewDtos = domainReviews
                 .Select(mapper.Map<ReviewDTO>)
-                .Select(i => {
+                .Select(i =>
+                {
                     i.IsLikedByUser = reviewContext.Likes.Any(l => l.ReviewId == i.Id && l.UserId == domainUser.Id);
                     i.IsDislikedByUser = reviewContext.Dislikes.Any(d => d.ReviewId == i.Id && d.UserId == domainUser.Id);
                     return i;
@@ -254,7 +256,7 @@ public class ReviewService(
 
     public async Task<Result<PagedResult<ReviewDTO>>> GetReviewsForTypeAsync(User domainUser, ReferenceType referenceType, int pageNumber, int pageSize)
     {
-        try 
+        try
         {
             var query = reviewContext.Reviews
                 .Where(r => r.ReferenceType.Equals(referenceType) && !r.IsDeleted)
@@ -271,7 +273,8 @@ public class ReviewService(
             var domainReviews = reviews.Select(mapper.Map<Review>).ToList();
             var reviewDtos = domainReviews
                 .Select(mapper.Map<ReviewDTO>)
-                .Select(i => {
+                .Select(i =>
+                {
                     i.IsLikedByUser = reviewContext.Likes.Any(l => l.ReviewId == i.Id && l.UserId == domainUser.Id);
                     i.IsDislikedByUser = reviewContext.Dislikes.Any(d => d.ReviewId == i.Id && d.UserId == domainUser.Id);
                     return i;

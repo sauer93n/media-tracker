@@ -5,7 +5,7 @@ using CookieOptions = Api.Model.CookieOptions;
 
 namespace Api.Middleware;
 
-public class CookieTokenMiddleware(RequestDelegate next,IOptions<KeycloakOptions> keycloakOptions,
+public class CookieTokenMiddleware(RequestDelegate next, IOptions<KeycloakOptions> keycloakOptions,
     IOptions<CookieOptions> cookieOptions,
     IHttpClientFactory httpClientFactory)
 {
@@ -49,7 +49,7 @@ public class CookieTokenMiddleware(RequestDelegate next,IOptions<KeycloakOptions
         {
             var httpClient = httpClientFactory.CreateClient("middleware");
             var tokenUrl = $"{keycloakOptions.Value.AuthServerUrl}/realms/{keycloakOptions.Value.Realm}/protocol/openid-connect/token";
-            
+
             var refreshData = new Dictionary<string, string>
             {
                 ["client_id"] = keycloakOptions.Value.UserClientId,

@@ -20,7 +20,7 @@ public class DomainUserMiddleware
         // Only process authenticated requests
         if (context.User.Identity?.IsAuthenticated ?? false)
         {
-            var userId = context.User.FindFirst("sub") 
+            var userId = context.User.FindFirst("sub")
                 ?? context.User.FindFirst(ClaimTypes.NameIdentifier)
                 ?? context.User.FindFirst("user_id");
             var userName = context.User.FindFirst("name")?.Value ?? context.User.FindFirst("preferred_username")?.Value ?? "Unknown";
