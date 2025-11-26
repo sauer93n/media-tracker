@@ -106,7 +106,7 @@ public class ReviewServiceTests : IDisposable
         result.Value.Should().NotBeNull();
         result.Value.Content.Should().Be(request.Content);
         result.Value.Rating.Should().Be(request.Rating);
-        
+
         _eventPublisherMock.Verify(
             x => x.PublishAsync(It.IsAny<Domain.Event.DomainEvent>()),
             Times.Once);
@@ -165,7 +165,7 @@ public class ReviewServiceTests : IDisposable
         // Arrange
         var authorId = Guid.NewGuid();
         var reviewId = Guid.NewGuid();
-        
+
         var existingReview = new Infrastructure.Entity.Review
         {
             Id = reviewId,
@@ -377,7 +377,7 @@ public class ReviewServiceTests : IDisposable
 
         _context.Reviews.Add(review);
         await _context.SaveChangesAsync();
-        
+
         _mapperMock.Setup(m => m.Map<Review>(It.IsAny<Infrastructure.Entity.Review>()))
             .Returns(Review.Create(
                 new User(review.AuthorId, "Author"),
@@ -390,7 +390,7 @@ public class ReviewServiceTests : IDisposable
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        
+
         var likeCount = await _context.Likes.CountAsync(l => l.ReviewId == reviewId && l.UserId == userId);
         likeCount.Should().Be(1);
     }
@@ -425,7 +425,7 @@ public class ReviewServiceTests : IDisposable
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        
+
         var likeCount = await _context.Likes.CountAsync(l => l.ReviewId == reviewId && l.UserId == userId);
         likeCount.Should().Be(0);
     }
@@ -482,7 +482,7 @@ public class ReviewServiceTests : IDisposable
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        
+
         var dislikeCount = await _context.Dislikes.CountAsync(d => d.ReviewId == reviewId && d.UserId == userId);
         dislikeCount.Should().Be(1);
     }
@@ -517,7 +517,7 @@ public class ReviewServiceTests : IDisposable
 
         // Assert
         result.IsSuccess.Should().BeTrue();
-        
+
         var dislikeCount = await _context.Dislikes.CountAsync(d => d.ReviewId == reviewId && d.UserId == userId);
         dislikeCount.Should().Be(0);
     }
@@ -531,7 +531,7 @@ public class ReviewServiceTests : IDisposable
     {
         // Arrange
         var user = new User(Guid.NewGuid(), "Test User");
-        
+
         // Add multiple reviews
         for (int i = 0; i < 15; i++)
         {
@@ -567,7 +567,7 @@ public class ReviewServiceTests : IDisposable
                 r.Content,
                 r.Rating,
                 r.ReferenceId));
-            
+
         _mapperMock.Setup(m => m.Map<ReviewDTO>(It.IsAny<Review>()))
             .Returns((Review r) => new ReviewDTO
             {
