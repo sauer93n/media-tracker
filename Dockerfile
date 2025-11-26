@@ -8,6 +8,7 @@ COPY Src/Api/Api.csproj ./Api/
 COPY Src/Application/Application.csproj ./Application/
 COPY Src/Domain/Domain.csproj ./Domain/
 COPY Src/Infrastructure/Infrastructure.csproj ./Infrastructure/
+COPY Src/Tests ./Tests
 
 # Restore dependencies as a separate layer
 RUN dotnet restore
