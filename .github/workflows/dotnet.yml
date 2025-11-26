@@ -113,7 +113,7 @@ jobs:
       run: dotnet tool install --global dotnet-outdated-tool
 
     - name: Check for outdated packages
-      run: dotnet outdated ${{ env.SOLUTION_PATH }} --upgrade
+      run: dotnet outdated ${{ env.SOLUTION_PATH }}
 
   security-scan:
     name: Security Scan
