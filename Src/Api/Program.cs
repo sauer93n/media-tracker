@@ -45,6 +45,16 @@ builder.Services.AddSwaggerGen(
 builder.Services.AddControllers();
 builder.Services.AddScoped<IEventPublisher, EventPublisher>();
 
+// Add health checks
+builder.Services.AddHealthChecks()
+    .AddNpgSql(
+        builder.Configuration.GetConnectionString("MediaTracker")
+            ?? throw new InvalidOperationException("Connection string 'MediaTracker' not found."),
+        name: "postgresql",
+        timeout: TimeSpan.FromSeconds(3),
+        tags: new[] { "db", "sql", "postgresql" }
+    );
+
 // Add CORS configuration from appsettings
 builder.Services.Configure<CorsOptions>(builder.Configuration.GetSection("Cors"));
 var corsOptions = builder.Configuration.GetSection("Cors").Get<CorsOptions>() ?? new CorsOptions();
@@ -88,9 +98,9 @@ builder.Services.AddAuthentication()
     {
         options.Authority = $"{keycloakOptions.AuthServerUrl}/realms/{keycloakOptions.Realm}";
         options.Audience = "account";
-        #if DEBUG
+#if DEBUG
         options.RequireHttpsMetadata = false;
-        #endif
+#endif
     });
 builder.Services.AddAuthorization();
 builder.Services.AddAutoMapperProfiles(typeof(IReviewService).Assembly);
@@ -106,6 +116,38 @@ app.UseDomainUserMiddleware();
 
 app.MapControllers();
 
+// Health check endpoints
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => true,
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration = e.Value.Duration.TotalMilliseconds
+            })
+        });
+        await context.Response.WriteAsync(result);
+    }
+});
+
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => false // Only checks application is running
+});
+
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("db") // Only checks dependencies like DB
+});
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -117,3 +159,6 @@ if (app.Environment.IsDevelopment())
 }
 
 app.Run();
+
+// Make the implicit Program class public for integration tests
+public partial class Program { }
