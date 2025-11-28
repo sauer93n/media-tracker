@@ -72,12 +72,10 @@ builder.Services.AddCors(options =>
     });
 });
 builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
-var connectionString =
-    builder.Configuration.GetConnectionString("MediaTracker")
-        ?? throw new InvalidOperationException("Connection string 'MediaTracker' not found.");
-
-builder.Services.AddDbContext<ReviewContext>(options =>
-    options.UseNpgsql(connectionString));
+var connectionString = builder.Configuration.GetConnectionString("MediaTracker");
+if (!string.IsNullOrEmpty(connectionString))
+    builder.Services.AddDbContext<ReviewContext>(options =>
+        options.UseNpgsql(connectionString));
 
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IMediaService, MediaService>();
@@ -86,14 +84,11 @@ builder.Services.AddScoped<IMediaService, MediaService>();
 builder.Services.AddHttpClient();
 builder.Services.AddHttpClient("middleware").AddResiliencePolicies();
 
-builder.Services.Configure<KeycloakOptions>(builder.Configuration.GetSection("KeycloakOptions"));
-builder.Services.Configure<ApplicationOptions>(builder.Configuration.GetSection("ApplicationOptions"));
-builder.Services.Configure<CookieOptions>(builder.Configuration.GetSection("CookieOptions"));
-
-var keycloakOptions = builder.Configuration.GetSection("KeycloakOptions").Get<KeycloakOptions>()
-    ?? throw new InvalidOperationException("KeycloakOptions not configured");
-
-builder.Services.AddAuthentication()
+var keycloakOptionsSection = builder.Configuration.GetSection("KeycloakOptions");
+if (keycloakOptionsSection.Exists())
+{
+    var keycloakOptions = keycloakOptionsSection.Get<KeycloakOptions>();
+    builder.Services.AddAuthentication()
     .AddJwtBearer("Bearer", options =>
     {
         options.Authority = $"{keycloakOptions.AuthServerUrl}/realms/{keycloakOptions.Realm}";
@@ -102,6 +97,17 @@ builder.Services.AddAuthentication()
         options.RequireHttpsMetadata = false;
 #endif
     });
+    builder.Services.Configure<KeycloakOptions>(keycloakOptionsSection);
+}
+
+var applicationOptionsSection = builder.Configuration.GetSection("ApplicationOptions");
+if (applicationOptionsSection.Exists())
+    builder.Services.Configure<ApplicationOptions>(applicationOptionsSection);
+
+var cookieOptionsSection = builder.Configuration.GetSection("CookieOptions");
+if (cookieOptionsSection.Exists())
+    builder.Services.Configure<CookieOptions>(cookieOptionsSection);
+
 builder.Services.AddAuthorization();
 builder.Services.AddAutoMapperProfiles(typeof(IReviewService).Assembly);
 
@@ -156,6 +162,15 @@ if (app.Environment.IsDevelopment())
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "Media Tracker API v1");
     });
+}
+else
+{
+    using var scope = app.Services.CreateScope();
+    
+    // Validate required services exist
+    var dbContext = scope.ServiceProvider.GetService<ReviewContext>();
+    if (dbContext == null)
+        throw new InvalidOperationException("Database context not configured");
 }
 
 app.Run();

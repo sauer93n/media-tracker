@@ -19,6 +19,8 @@ RUN dotnet restore
 # Copy the rest of the source code
 COPY Src/ ./
 
+ENV ConnectionStrings__MediaTracker="Host=localhost;Database=mediatracker;Username=postgres;Password=dummy"
+
 # Build and publish the application
 RUN dotnet publish ./Api/Api.csproj \
     --configuration Release \
@@ -45,7 +47,7 @@ RUN groupadd -r appuser && useradd -r -g appuser appuser
 # Copy published files from build stage
 COPY --from=build /app/publish .
 
-RUN chmod +x /app/publish/efbundle
+RUN chmod +x ./efbundle
 
 # Set ownership to non-root user
 RUN chown -R appuser:appuser /app
