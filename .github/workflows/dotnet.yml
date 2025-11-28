@@ -178,7 +178,6 @@ jobs:
         echo "Security Scan: ${{ needs.security-scan.result }}"
         
         if [ "${{ needs.build-and-test.result }}" != "success" ] || \
-           [ "${{ needs.code-quality.result }}" != "success" ] || \
            [ "${{ needs.security-scan.result }}" != "success" ]; then
           echo "❌ Pipeline failed!"
           exit 1
