@@ -62,6 +62,13 @@ jobs:
     - name: Run unit tests
       run: dotnet test ${{ env.SOLUTION_PATH }} --configuration ${{ env.CONFIGURATION }} --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect:"XPlat Code Coverage"
 
+    - name: Upload EF Bundle
+      uses: actions/upload-artifact@v4
+      with:
+        name: efbundle
+        path: efbundle
+        retention-days: 7
+
     - name: Upload test results
       uses: actions/upload-artifact@v4
       if: always()
