@@ -166,7 +166,7 @@ if (app.Environment.IsDevelopment())
 else
 {
     using var scope = app.Services.CreateScope();
-    
+
     // Validate required services exist
     var dbContext = scope.ServiceProvider.GetService<ReviewContext>();
     if (dbContext == null)
