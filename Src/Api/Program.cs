@@ -13,7 +13,8 @@ using CookieOptions = Api.Model.CookieOptions;
 var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
-    .AddEnvironmentVariables();
+    .AddEnvironmentVariables()
+    .AddKeyPerFile("/run/secrets", optional: true);
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(
@@ -64,7 +65,7 @@ builder.Services.AddCors(options =>
             .WithExposedHeaders(corsOptions.ExposedHeaders);
     });
 });
-builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
+
 var connectionString = builder.Configuration.GetConnectionString("MediaTracker");
 if (!string.IsNullOrEmpty(connectionString))
 {
@@ -97,9 +98,7 @@ if (keycloakOptionsSection.Exists())
     {
         options.Authority = $"{keycloakOptions.AuthServerUrl}/realms/{keycloakOptions.Realm}";
         options.Audience = "account";
-#if DEBUG
-        options.RequireHttpsMetadata = false;
-#endif
+        options.RequireHttpsMetadata = args[0] != "--no-https-metadata";
     });
     builder.Services.Configure<KeycloakOptions>(keycloakOptionsSection);
 }
