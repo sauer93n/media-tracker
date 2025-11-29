@@ -45,16 +45,6 @@ builder.Services.AddSwaggerGen(
 builder.Services.AddControllers();
 builder.Services.AddScoped<IEventPublisher, EventPublisher>();
 
-// Add health checks
-builder.Services.AddHealthChecks()
-    .AddNpgSql(
-        builder.Configuration.GetConnectionString("MediaTracker")
-            ?? throw new InvalidOperationException("Connection string 'MediaTracker' not found."),
-        name: "postgresql",
-        timeout: TimeSpan.FromSeconds(3),
-        tags: new[] { "db", "sql", "postgresql" }
-    );
-
 // Add CORS configuration from appsettings
 builder.Services.Configure<CorsOptions>(builder.Configuration.GetSection("Cors"));
 var corsOptions = builder.Configuration.GetSection("Cors").Get<CorsOptions>() ?? new CorsOptions();
@@ -74,8 +64,19 @@ builder.Services.AddCors(options =>
 builder.Configuration.AddKeyPerFile("/run/secrets", optional: true);
 var connectionString = builder.Configuration.GetConnectionString("MediaTracker");
 if (!string.IsNullOrEmpty(connectionString))
+{
     builder.Services.AddDbContext<ReviewContext>(options =>
         options.UseNpgsql(connectionString));
+
+    // Add health checks
+    builder.Services.AddHealthChecks()
+        .AddNpgSql(
+            connectionString,
+            name: "postgresql",
+            timeout: TimeSpan.FromSeconds(3),
+            tags: ["db", "sql", "postgresql"]
+        );
+}
 
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IMediaService, MediaService>();
