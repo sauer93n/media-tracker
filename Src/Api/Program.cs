@@ -11,6 +11,8 @@ using Microsoft.OpenApi.Models;
 using CookieOptions = Api.Model.CookieOptions;
 
 var builder = WebApplication.CreateBuilder(args);
+var disableHttpsMetadata = args.Contains("--no-https-metadata");
+Console.WriteLine($"Disable HTTPS Metadata: {disableHttpsMetadata}");
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables()
@@ -98,7 +100,7 @@ if (keycloakOptionsSection.Exists())
     {
         options.Authority = $"{keycloakOptions.AuthServerUrl}/realms/{keycloakOptions.Realm}";
         options.Audience = "account";
-        options.RequireHttpsMetadata = args[0] != "--no-https-metadata";
+        options.RequireHttpsMetadata = !disableHttpsMetadata;
     });
     builder.Services.Configure<KeycloakOptions>(keycloakOptionsSection);
 }
@@ -115,7 +117,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddAutoMapperProfiles(typeof(IReviewService).Assembly);
 
 var app = builder.Build();
-app.UseHttpsRedirection();
+if (!disableHttpsMetadata) app.UseHttpsRedirection();
 
 app.UseCors("AllowFrontend");
 app.UseCookieTokenMiddleware();
