@@ -23,7 +23,8 @@ public class ReviewService(
                 user,
                 request.Content,
                 request.Rating,
-                request.ReferenceId
+                request.ReferenceId,
+                Enum.Parse<Domain.ValueObject.ReferenceType>(request.ReferenceType.ToString())
             );
 
             var reviewEntity = mapper.Map<Infrastructure.Entity.Review>(domainReview);

@@ -11,7 +11,12 @@ using Microsoft.OpenApi.Models;
 using CookieOptions = Api.Model.CookieOptions;
 
 var builder = WebApplication.CreateBuilder(args);
-var disableHttpsMetadata = args.Contains("--no-https-metadata");
+var disableHttpsMetadata =
+#if DEBUG
+true;
+#else
+args.Contains("--no-https-metadata");
+#endif
 Console.WriteLine($"Disable HTTPS Metadata: {disableHttpsMetadata}");
 builder.Configuration.AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
