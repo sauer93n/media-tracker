@@ -1,3 +1,3 @@
 namespace Domain.Event;
 
-public record ReviewContentUpdatedEvent(Guid userId, Guid reviewId, string newContent) : DomainEvent;
+public record ReviewContentUpdatedEvent(Guid userId, Guid reviewId, string newContent) : DomainEvent(Guid.NewGuid());

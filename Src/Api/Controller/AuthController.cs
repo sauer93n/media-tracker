@@ -89,7 +89,7 @@ namespace Api.Controller
             };
 
             var userRequest = new HttpRequestMessage(HttpMethod.Post, url);
-            userRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
+            userRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", adminToken);
             userRequest.Content = new StringContent(JsonSerializer.Serialize(userPayload), System.Text.Encoding.UTF8, "application/json");
 
             var userResponse = await policy.ExecuteAsync(async () =>
@@ -105,18 +105,6 @@ namespace Api.Controller
 
             if (string.IsNullOrEmpty(userId))
                 return BadRequest("Failed to get user ID");
-
-            // Send verification email
-            var verifyEmailUrl = $"{keycloakOptions.Value.AuthServerUrl}/admin/realms/{keycloakOptions.Value.Realm}/users/{userId}/send-verify-email";
-            var verifyRequest = new HttpRequestMessage(HttpMethod.Put, verifyEmailUrl);
-            verifyRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", adminToken);
-
-            var verifyResponse = await policy.ExecuteAsync(async () =>
-                await httpClient.SendAsync(verifyRequest)
-            );
-
-            if (!verifyResponse.IsSuccessStatusCode)
-                return BadRequest("Failed to send verification email");
 
             return Ok(new { message = "User registered successfully. Please check your email to verify your account." });
         }
