@@ -1,3 +1,3 @@
 namespace Domain.Event;
 
-public record LikeAddedEvent(Guid ReviewId, Guid UserId) : DomainEvent;
+public record LikeAddedEvent(Guid ReviewId, Guid UserId) : DomainEvent(Guid.NewGuid());

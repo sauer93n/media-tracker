@@ -64,7 +64,8 @@ public class ReviewServiceTests : IDisposable
             new User(authorId, "Test User"),
             request.Content,
             request.Rating,
-            referenceId
+            referenceId,
+            Domain.ValueObject.ReferenceType.Movie
         );
 
         var reviewDto = new ReviewDTO
@@ -202,7 +203,8 @@ public class ReviewServiceTests : IDisposable
             new User(authorId, "Test User"),
             existingReview.Content,
             existingReview.Rating,
-            existingReview.ReferenceId
+            existingReview.ReferenceId,
+            Domain.ValueObject.ReferenceType.Movie
         );
 
         _mapperMock.Setup(m => m.Map<ReviewDTO>(It.IsAny<Infrastructure.Entity.Review>()))
@@ -383,7 +385,9 @@ public class ReviewServiceTests : IDisposable
                 new User(review.AuthorId, "Author"),
                 review.Content,
                 review.Rating,
-                review.ReferenceId));
+                review.ReferenceId,
+                Domain.ValueObject.ReferenceType.Movie
+            ));
 
         // Act
         var result = await _reviewService.LikeReviewAsync(reviewId, userId);
@@ -475,7 +479,9 @@ public class ReviewServiceTests : IDisposable
                 new User(review.AuthorId, "Author"),
                 review.Content,
                 review.Rating,
-                review.ReferenceId));
+                review.ReferenceId,
+                Domain.ValueObject.ReferenceType.Movie
+            ));
 
         // Act
         var result = await _reviewService.DislikeReviewAsync(reviewId, userId);
@@ -566,7 +572,9 @@ public class ReviewServiceTests : IDisposable
                 new User(r.AuthorId, "Author"),
                 r.Content,
                 r.Rating,
-                r.ReferenceId));
+                r.ReferenceId,
+                Domain.ValueObject.ReferenceType.Movie
+            ));
 
         _mapperMock.Setup(m => m.Map<ReviewDTO>(It.IsAny<Review>()))
             .Returns((Review r) => new ReviewDTO

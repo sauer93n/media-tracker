@@ -11,18 +11,19 @@ public class CookieTokenMiddleware(RequestDelegate next, IOptions<KeycloakOption
 {
     public async Task InvokeAsync(HttpContext context)
     {
+        var endpoint = context.GetEndpoint();
+        var authorizeAttr = endpoint?.Metadata.GetMetadata<Microsoft.AspNetCore.Authorization.AuthorizeAttribute>();
+        
+        if (authorizeAttr == null)
+        {
+            await next(context);
+            return;
+        }
+
         var accessTokenPresent = context.Request.Cookies.TryGetValue("AccessToken", out var accessToken);
         var refreshTokenPresent = context.Request.Cookies.TryGetValue("RefreshToken", out var refreshToken);
-        if (accessTokenPresent && refreshTokenPresent)
-        {
-            context.Request.Headers["Authorization"] = $"Bearer {accessToken}";
-            context.Request.Headers["RefreshToken"] = refreshToken;
-        }
-        else if (accessTokenPresent && !refreshTokenPresent)
-        {
-            context.Request.Headers["Authorization"] = $"Bearer {accessToken}";
-        }
-        else if (refreshTokenPresent)
+
+        if (!accessTokenPresent || !await ValidateTokenWithKeycloakAsync(accessToken, httpClientFactory, keycloakOptions.Value))
         {
             var result = await RefreshAccessTokenAsync(context, refreshToken);
             if (result.IsSuccess)
@@ -30,9 +31,58 @@ public class CookieTokenMiddleware(RequestDelegate next, IOptions<KeycloakOption
                 context.Request.Headers["Authorization"] = $"Bearer {result.AccessToken}";
                 context.Request.Headers["RefreshToken"] = result.RefreshToken;
             }
+            await next(context);
+            return;
+        }
+
+        if (accessTokenPresent && refreshTokenPresent)
+        {
+            context.Request.Headers["Authorization"] = $"Bearer {accessToken}";
+            context.Request.Headers["RefreshToken"] = refreshToken;
         }
 
         await next(context);
+    }
+
+    private async Task<bool> ValidateTokenWithKeycloakAsync(
+        string token, 
+        IHttpClientFactory httpClientFactory,
+        KeycloakOptions keycloakOptions)
+    {
+        try
+        {
+            var httpClient = httpClientFactory.CreateClient();
+            var introspectionUrl = $"{keycloakOptions.AuthServerUrl}/realms/{keycloakOptions.Realm}/protocol/openid-connect/token/introspect";
+            
+            var introspectionData = new Dictionary<string, string>
+            {
+                ["token"] = token,
+                ["client_id"] = keycloakOptions.UserClientId,
+                ["client_secret"] = keycloakOptions.UserClientSecret
+            };
+            
+            var response = await httpClient.PostAsync(
+                introspectionUrl,
+                new FormUrlEncodedContent(introspectionData)
+            );
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                // _logger.LogWarning("Token introspection failed: {StatusCode}", response.StatusCode);
+                return false;
+            }
+            
+            var content = await response.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(content);
+            
+            return doc.RootElement.GetProperty("active").GetBoolean();
+        }
+        catch (Exception ex)
+        {
+            // _logger.LogError(ex, "Error validating token with Keycloak");
+            // Return true on errors to avoid blocking requests
+            return true;
+        }
     }
 
     /// <summary>

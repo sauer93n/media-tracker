@@ -18,7 +18,8 @@ public class Review : BaseAggregateRoot
         User author,
         string content,
         double rating,
-        string refId) : base()
+        string refId,
+        ReferenceType referenceType) : base()
     {
         Author = author;
         Content = content;
@@ -26,15 +27,16 @@ public class Review : BaseAggregateRoot
         Likes = 0;
         Dislikes = 0;
         ReferenceId = refId;
+        ReferenceType = referenceType;
     }
 
     private Review() { } // For AutoMapper
 
-    public static Review Create(User author, string content, double rating, string refId)
+    public static Review Create(User author, string content, double rating, string refId, ReferenceType referenceType)
     {
-        var result = new Review(author, content, rating, refId);
+        var result = new Review(author, content, rating, refId, referenceType);
 
-        var @event = new ReviewCreatedEvent(author.Id, result.Id, content, rating, refId);
+        var @event = new ReviewCreatedEvent(author.Id, result.Id, content, rating, refId, referenceType);
         result.AddDomainEvent(@event);
         return result;
     }
