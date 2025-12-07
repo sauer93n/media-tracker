@@ -23,25 +23,45 @@ public class CookieTokenMiddleware(RequestDelegate next, IOptions<KeycloakOption
         var accessTokenPresent = context.Request.Cookies.TryGetValue("AccessToken", out var accessToken);
         var refreshTokenPresent = context.Request.Cookies.TryGetValue("RefreshToken", out var refreshToken);
 
-        if (!accessTokenPresent || !await ValidateTokenWithKeycloakAsync(accessToken, httpClientFactory, keycloakOptions.Value))
+        if (!accessTokenPresent && !refreshTokenPresent)
         {
-            var result = await RefreshAccessTokenAsync(context, refreshToken);
-            if (result.IsSuccess)
-            {
-                context.Request.Headers["Authorization"] = $"Bearer {result.AccessToken}";
-                context.Request.Headers["RefreshToken"] = result.RefreshToken;
-            }
-            await next(context);
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return;
         }
 
-        if (accessTokenPresent && refreshTokenPresent)
+        if (accessTokenPresent && !string.IsNullOrEmpty(accessToken))
         {
-            context.Request.Headers["Authorization"] = $"Bearer {accessToken}";
-            context.Request.Headers["RefreshToken"] = refreshToken;
+            var isValid = await ValidateTokenWithKeycloakAsync(accessToken, httpClientFactory, keycloakOptions.Value);
+            
+            if (isValid)
+            {
+                context.Request.Headers["Authorization"] = $"Bearer {accessToken}";
+                await next(context);
+                return;
+            }
         }
 
-        await next(context);
+        if (refreshTokenPresent && !string.IsNullOrEmpty(refreshToken))
+        {
+            var result = await RefreshAccessTokenAsync(context, refreshToken);
+            
+            if (result.IsSuccess)
+            {
+                context.Request.Headers["Authorization"] = $"Bearer {result.AccessToken}";
+                context.Response.Cookies.Append(cookieOptions.Value.AccessTokenCookieName, result.AccessToken);
+                await next(context);
+                return;
+            }
+            
+            context.Response.Cookies.Delete(cookieOptions.Value.AccessTokenCookieName);
+            context.Response.Cookies.Delete(cookieOptions.Value.RefreshTokenCookieName);
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            return;
+        }
+
+        context.Response.Cookies.Delete(cookieOptions.Value.AccessTokenCookieName);
+        context.Response.Cookies.Delete(cookieOptions.Value.RefreshTokenCookieName);
+        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
     }
 
     private async Task<bool> ValidateTokenWithKeycloakAsync(
@@ -81,7 +101,7 @@ public class CookieTokenMiddleware(RequestDelegate next, IOptions<KeycloakOption
         {
             // _logger.LogError(ex, "Error validating token with Keycloak");
             // Return true on errors to avoid blocking requests
-            return true;
+            return false;
         }
     }
 
