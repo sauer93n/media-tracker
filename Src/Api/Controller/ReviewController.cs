@@ -82,14 +82,14 @@ public class ReviewController(IReviewService reviewService) : ControllerBase
         return Ok(result.Value);
     }
 
-    [HttpGet("my")]
-    public async Task<IActionResult> GetMyReviews([FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    [HttpGet("my/{referenceType}")]
+    public async Task<IActionResult> GetMyReviews([FromRoute] ReferenceType referenceType, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {
         // Get the domain user from the middleware
         var domainUser = HttpContext.GetDomainUser();
         if (domainUser == null) return Unauthorized("User not found");
 
-        var result = await reviewService.GetUserReviewsAsync(domainUser, pageNumber, pageSize);
+        var result = await reviewService.GetUserReviewsAsync(domainUser, referenceType, pageNumber, pageSize);
 
         if (result.IsFailed) return BadRequest(result.Errors);
 

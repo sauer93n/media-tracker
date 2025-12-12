@@ -32,6 +32,12 @@ public class ReviewEntityTypeConfiguration : IEntityTypeConfiguration<Review>
             .Property(r => r.Rating)
             .IsRequired();
 
+        // Constraint: One user can only have one review per media (movie/tv show)
+        builder
+            .HasIndex(r => new { r.AuthorId, r.ReferenceId, r.ReferenceType })
+            .IsUnique()
+            .HasDatabaseName("IX_Reviews_AuthorId_ReferenceId_ReferenceType_Unique");
+
         builder
             .HasMany(r => r.Likes)
             .WithOne()

@@ -145,4 +145,34 @@ public class MediaService : IMediaService
 
         return Result.Ok(allResults.AsEnumerable());
     }
+
+    public async Task<Result<MediaDetailsDTO>> FindByExternalIdAsync(string externalId, ReferenceType referenceType, CancellationToken cancellationToken = default)
+    {
+        return referenceType switch
+        {
+            ReferenceType.Movie => await FindMovieByExternalIdAsync(externalId, cancellationToken),
+            ReferenceType.TV => await FindTvShowByExternalIdAsync(externalId, cancellationToken),
+            _ => Result.Fail<MediaDetailsDTO>("Invalid reference type")
+        };
+    }
+
+    private async Task<Result<MediaDetailsDTO>> FindMovieByExternalIdAsync(string externalId, CancellationToken cancellationToken)
+    {
+        var findResult = await tMDbClient.FindAsync(TMDbLib.Objects.Find.FindExternalSource.Imdb, externalId, cancellationToken: cancellationToken);
+        var movie = findResult?.MovieResults.FirstOrDefault();
+        if (movie == null)
+            return Result.Fail<MediaDetailsDTO>("Movie not found by external ID");
+
+        return Result.Ok(mapper.Map<MediaDetailsDTO>(movie));
+    }
+    
+    private async Task<Result<MediaDetailsDTO>> FindTvShowByExternalIdAsync(string externalId, CancellationToken cancellationToken)
+    {
+        var findResult = await tMDbClient.FindAsync(TMDbLib.Objects.Find.FindExternalSource.Imdb, externalId, cancellationToken: cancellationToken);
+        var tvShow = findResult?.TvResults.FirstOrDefault();
+        if (tvShow == null)
+            return Result.Fail<MediaDetailsDTO>("TV Show not found by external ID");
+
+        return Result.Ok(mapper.Map<MediaDetailsDTO>(tvShow));
+    }
 }

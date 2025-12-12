@@ -40,5 +40,9 @@ public class ReviewMappingProfile : Profile
             .ForMember(dest => dest.Dislikes, opt => opt.MapFrom(src => src.Dislikes == null ? 0 : src.Dislikes.Count))
             .ForMember(dest => dest.ReferenceType, opt => opt.MapFrom(src => src.ReferenceType))
             .ForMember(dest => dest.ReferenceId, opt => opt.MapFrom(src => src.ReferenceId));
+
+        // CreateMap<KinopoiskRatingDTO, Domain.Entity.Review>()
+        //     .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => src.UserRating))
+        //     .ForMember(dest => dest., opt => opt.MapFrom(src => "Kinopoisk"));
     }
 }

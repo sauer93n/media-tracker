@@ -7,7 +7,7 @@ namespace Application.Interface;
 public interface IReviewService
 {
     Task<Result<ReviewDTO>> GetReviewByIdAsync(User domainUser, Guid reviewId);
-    Task<Result<PagedResult<ReviewDTO>>> GetUserReviewsAsync(User domainUser, int pageNumber, int pageSize);
+    Task<Result<PagedResult<ReviewDTO>>> GetUserReviewsAsync(User domainUser, ReferenceType referenceType, int pageNumber, int pageSize);
     Task<Result<PagedResult<ReviewDTO>>> GetReviewsAsync(User domainUser, int pageNumber, int pageSize);
     Task<Result<PagedResult<ReviewDTO>>> GetReviewsForTypeAsync(User domainUser, ReferenceType referenceType, int pageNumber, int pageSize);
     Task<Result<ReviewDTO>> CreateReviewAsync(CreateReviewRequest request);

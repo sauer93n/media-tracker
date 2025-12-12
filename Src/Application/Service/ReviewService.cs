@@ -18,6 +18,20 @@ public class ReviewService(
     {
         try
         {
+            // Check if user already has a review for this media
+            var existingReview = await reviewContext.Reviews
+                .FirstOrDefaultAsync(r => 
+                    r.AuthorId == request.AuthorId && 
+                    r.ReferenceId == request.ReferenceId && 
+                    r.ReferenceType == (Infrastructure.Entity.ReferenceType)request.ReferenceType &&
+                    !r.IsDeleted);
+
+            if (existingReview != null)
+            {
+                return Result.Fail<ReviewDTO>(
+                    $"You already have a review for this media. Please update your existing review instead (Review ID: {existingReview.Id})");
+            }
+
             var user = new User(request.AuthorId, request.AuthorName);
             var domainReview = Review.Create(
                 user,
@@ -37,6 +51,11 @@ public class ReviewService(
             var reviewDto = mapper.Map<ReviewDTO>(domainReview);
 
             return Result.Ok(reviewDto);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("unique") ?? false)
+        {
+            return Result.Fail<ReviewDTO>(
+                "A review already exists for this media by you. Each user can only have one review per media item.");
         }
         catch (Exception ex)
         {
@@ -147,12 +166,12 @@ public class ReviewService(
         }
     }
 
-    public async Task<Result<PagedResult<ReviewDTO>>> GetUserReviewsAsync(User domainUser, int pageNumber, int pageSize)
+    public async Task<Result<PagedResult<ReviewDTO>>> GetUserReviewsAsync(User domainUser, ReferenceType referenceType, int pageNumber, int pageSize)
     {
         try
         {
             var query = reviewContext.Reviews
-                .Where(r => r.AuthorId == domainUser.Id && !r.IsDeleted)
+                .Where(r => r.AuthorId == domainUser.Id && !r.IsDeleted && r.ReferenceType == Enum.Parse<Infrastructure.Entity.ReferenceType>(referenceType.ToString()))
                 .Include(r => r.Likes)
                 .Include(r => r.Dislikes);
 

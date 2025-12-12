@@ -1,5 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
-using System.Text.Json;
 using Api.Middleware;
 using Api.Model;
 using Application.EventPublisher;
@@ -8,8 +6,8 @@ using Application.Interface;
 using Application.Model;
 using Application.Service;
 using Infrastructure.Context;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using CookieOptions = Api.Model.CookieOptions;
@@ -81,7 +79,12 @@ var connectionString = builder.Configuration.GetConnectionString("MediaTracker")
 if (!string.IsNullOrEmpty(connectionString))
 {
     builder.Services.AddDbContext<ReviewContext>(options =>
-        options.UseNpgsql(connectionString));
+        options.UseNpgsql(connectionString)
+        #if DEBUG
+        .EnableDetailedErrors()
+        .EnableSensitiveDataLogging()
+        #endif
+        );
 
     // Add health checks
     builder.Services.AddHealthChecks()
@@ -95,6 +98,14 @@ if (!string.IsNullOrEmpty(connectionString))
 
 builder.Services.AddScoped<IReviewService, ReviewService>();
 builder.Services.AddScoped<IMediaService, MediaService>();
+builder.Services.AddScoped<IKinopoiskService, KinopoiskService>();
+
+// Register TMDbClient as a singleton (it's thread-safe and reusable)
+builder.Services.AddSingleton(sp =>
+{
+    var appOptions = sp.GetRequiredService<IOptions<ApplicationOptions>>();
+    return new TMDbLib.Client.TMDbClient(appOptions.Value.TmDbApiKey);
+});
 
 // Add HttpClient factory for use in controllers
 builder.Services.AddHttpClient();
@@ -118,50 +129,6 @@ if (keycloakOptionsSection.Exists())
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
         };
-        
-        // options.Events = new JwtBearerEvents
-        // {
-        //     OnAuthenticationFailed = async context => {
-
-        //     },
-        //     OnTokenValidated = async context =>
-        //     {
-        //         var httpClient = context.HttpContext.RequestServices
-        //             .GetRequiredService<IHttpClientFactory>()
-        //             .CreateClient();
-                
-        //         var token = context.HttpContext.Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
-        //         var introspectionUrl = $"{keycloakOptions.AuthServerUrl}/realms/{keycloakOptions.Realm}/protocol/openid-connect/token/introspect";
-                
-        //         var introspectionData = new Dictionary<string, string>
-        //         {
-        //             ["token"] = token,
-        //             ["token_type_hint"] = "requesting_party_token",
-        //             ["client_id"] = keycloakOptions.UserClientId,
-        //             ["client_secret"] = keycloakOptions.UserClientSecret
-        //         };
-                
-        //         var response = await httpClient.PostAsync(
-        //             introspectionUrl,
-        //             new FormUrlEncodedContent(introspectionData)
-        //         );
-                
-        //         if (!response.IsSuccessStatusCode)
-        //         {
-        //             context.Fail("Token introspection failed");
-        //             return;
-        //         }
-                
-        //         var content = await response.Content.ReadAsStringAsync();
-        //         using var doc = JsonDocument.Parse(content);
-        //         var isActive = doc.RootElement.GetProperty("active").GetBoolean();
-                
-        //         if (!isActive)
-        //         {
-        //             context.Fail("Token is no longer active");
-        //         }
-        //     }
-        // };
     });
     builder.Services.Configure<KeycloakOptions>(keycloakOptionsSection);
 }
