@@ -10,6 +10,7 @@ public interface IReviewService
     Task<Result<PagedResult<ReviewDTO>>> GetUserReviewsAsync(User domainUser, ReferenceType referenceType, int pageNumber, int pageSize);
     Task<Result<PagedResult<ReviewDTO>>> GetReviewsAsync(User domainUser, int pageNumber, int pageSize);
     Task<Result<PagedResult<ReviewDTO>>> GetReviewsForTypeAsync(User domainUser, ReferenceType referenceType, int pageNumber, int pageSize);
+    Task<Result<PagedResult<ReviewDTO>>> GetUserReviewsByUserIdAsync(Guid userId, int pageNumber, int pageSize);
     Task<Result<ReviewDTO>> CreateReviewAsync(CreateReviewRequest request);
     Task<Result<ReviewDTO>> UpdateReviewAsync(Guid updater, UpdateReviewRequest request);
     Task<Result> DeleteReviewAsync(Guid deleter, Guid reviewId);

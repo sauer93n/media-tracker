@@ -82,6 +82,16 @@ public class ReviewController(IReviewService reviewService) : ControllerBase
         return Ok(result.Value);
     }
 
+    [HttpGet("user/{userId}")]
+    public async Task<IActionResult> GetUserReviews([FromRoute] Guid userId, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await reviewService.GetUserReviewsByUserIdAsync(userId, pageNumber, pageSize);
+
+        if (result.IsFailed) return BadRequest(result.Errors);
+
+        return Ok(result.Value);
+    }
+
     [HttpGet("my/{referenceType}")]
     public async Task<IActionResult> GetMyReviews([FromRoute] ReferenceType referenceType, [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 10)
     {

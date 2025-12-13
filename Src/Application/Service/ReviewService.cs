@@ -175,33 +175,8 @@ public class ReviewService(
                 .Include(r => r.Likes)
                 .Include(r => r.Dislikes);
 
-            var totalCount = await query.CountAsync();
-
-            var reviews = await query
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var domainReviews = reviews.Select(mapper.Map<Review>).ToList();
-            var reviewDtos = domainReviews
-                .Select(mapper.Map<ReviewDTO>)
-                .Select(i =>
-                {
-                    i.IsLikedByUser = reviewContext.Likes.Any(l => l.ReviewId == i.Id && l.UserId == domainUser.Id);
-                    i.IsDislikedByUser = reviewContext.Dislikes.Any(d => d.ReviewId == i.Id && d.UserId == domainUser.Id);
-                    return i;
-                })
-                .ToList();
-
-            var pagedResult = new PagedResult<ReviewDTO>
-            {
-                Data = reviewDtos,
-                TotalCount = totalCount,
-                PageNumber = pageNumber,
-                PageSize = pageSize
-            };
-
-            return pagedResult;
+            var pagedResult = await GetPagedReviewsAsync(query, domainUser.Id, pageNumber, pageSize);
+            return Result.Ok(pagedResult);
         }
         catch (Exception ex)
         {
@@ -241,33 +216,8 @@ public class ReviewService(
                 .Include(r => r.Likes)
                 .Include(r => r.Dislikes);
 
-            var totalCount = await query.CountAsync();
-
-            var reviews = await query
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var domainReviews = reviews.Select(mapper.Map<Review>).ToList();
-            var reviewDtos = domainReviews
-                .Select(mapper.Map<ReviewDTO>)
-                .Select(i =>
-                {
-                    i.IsLikedByUser = reviewContext.Likes.Any(l => l.ReviewId == i.Id && l.UserId == domainUser.Id);
-                    i.IsDislikedByUser = reviewContext.Dislikes.Any(d => d.ReviewId == i.Id && d.UserId == domainUser.Id);
-                    return i;
-                })
-                .ToList();
-
-            var pagedResult = new PagedResult<ReviewDTO>
-            {
-                Data = reviewDtos,
-                TotalCount = totalCount,
-                PageNumber = pageNumber,
-                PageSize = pageSize
-            };
-
-            return pagedResult;
+            var pagedResult = await GetPagedReviewsAsync(query, domainUser.Id, pageNumber, pageSize);
+            return Result.Ok(pagedResult);
         }
         catch (Exception ex)
         {
@@ -284,33 +234,8 @@ public class ReviewService(
                 .Include(r => r.Likes)
                 .Include(r => r.Dislikes);
 
-            var totalCount = await query.CountAsync();
-
-            var reviews = await query
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync();
-
-            var domainReviews = reviews.Select(mapper.Map<Review>).ToList();
-            var reviewDtos = domainReviews
-                .Select(mapper.Map<ReviewDTO>)
-                .Select(i =>
-                {
-                    i.IsLikedByUser = reviewContext.Likes.Any(l => l.ReviewId == i.Id && l.UserId == domainUser.Id);
-                    i.IsDislikedByUser = reviewContext.Dislikes.Any(d => d.ReviewId == i.Id && d.UserId == domainUser.Id);
-                    return i;
-                })
-                .ToList();
-
-            var pagedResult = new PagedResult<ReviewDTO>
-            {
-                Data = reviewDtos,
-                TotalCount = totalCount,
-                PageNumber = pageNumber,
-                PageSize = pageSize
-            };
-
-            return pagedResult;
+            var pagedResult = await GetPagedReviewsAsync(query, domainUser.Id, pageNumber, pageSize);
+            return Result.Ok(pagedResult);
         }
         catch (Exception ex)
         {
@@ -347,5 +272,56 @@ public class ReviewService(
         {
             return Result.Fail<ReviewDTO>(ex.Message);
         }
+    }
+
+    public async Task<Result<PagedResult<ReviewDTO>>> GetUserReviewsByUserIdAsync(Guid userId, int pageNumber, int pageSize)
+    {
+        try
+        {
+            var query = reviewContext.Reviews
+                .Where(r => r.AuthorId == userId && !r.IsDeleted)
+                .Include(r => r.Likes)
+                .Include(r => r.Dislikes);
+
+            var pagedResult = await GetPagedReviewsAsync(query, userId, pageNumber, pageSize);
+            return Result.Ok(pagedResult);
+        }
+        catch (Exception ex)
+        {
+            return Result.Fail<PagedResult<ReviewDTO>>($"Error retrieving user reviews: {ex.Message}");
+        }
+    }
+
+    private async Task<PagedResult<ReviewDTO>> GetPagedReviewsAsync(
+        IQueryable<Infrastructure.Entity.Review> query, 
+        Guid currentUserId, 
+        int pageNumber, 
+        int pageSize)
+    {
+        var totalCount = await query.CountAsync();
+
+        var reviews = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var domainReviews = reviews.Select(mapper.Map<Review>).ToList();
+        var reviewDtos = domainReviews
+            .Select(mapper.Map<ReviewDTO>)
+            .Select(i =>
+            {
+                i.IsLikedByUser = reviewContext.Likes.Any(l => l.ReviewId == i.Id && l.UserId == currentUserId);
+                i.IsDislikedByUser = reviewContext.Dislikes.Any(d => d.ReviewId == i.Id && d.UserId == currentUserId);
+                return i;
+            })
+            .ToList();
+
+        return new PagedResult<ReviewDTO>
+        {
+            Data = reviewDtos,
+            TotalCount = totalCount,
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
     }
 }
